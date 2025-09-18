@@ -1,0 +1,23 @@
+{
+  "testEnvironment": "node",
+  "roots": ["<rootDir>"],
+  "testMatch": [
+    "**/__tests__/**/*.js",
+    "**/?(*.)+(spec|test).js"
+  ],
+  "collectCoverageFrom": [
+    "controllers/**/*.js",
+    "models/**/*.js",
+    "routes/**/*.js",
+    "middleware/**/*.js",
+    "!**/node_modules/**",
+    "!**/coverage/**",
+    "!server.js"
+  ],
+  "coverageDirectory": "coverage",
+  "coverageReporters": ["text", "lcov", "html"],
+  "setupFilesAfterEnv": ["<rootDir>/tests/setup.js"],
+  "testTimeout": 10000,
+  "clearMocks": true,
+  "restoreMocks": true
+}
