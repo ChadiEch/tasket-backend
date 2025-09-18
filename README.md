@@ -359,6 +359,10 @@ curl -X GET http://localhost:5000/api/tasks \
 ### Using Postman
 Import the API endpoints and test with the provided sample credentials.
 
+## 🚀 Deployment
+
+This is a backend-only API that can be deployed to platforms like Railway without Docker.
+
 ## 🛠️ Development
 
 ### Project Structure

@@ -1,4 +1,7 @@
-# Simple Railway configuration
+# Simple Railway configuration for backend-only API
+[build]
+# No build step needed for backend API
+
 [deploy]
 startCommand = "node server.js"
 numReplicas = 1
