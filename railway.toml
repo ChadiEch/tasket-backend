@@ -1,5 +1,4 @@
-[build]
-dockerfile = "Dockerfile"
-
+# Simple Railway configuration
 [deploy]
+startCommand = "node server.js"
 numReplicas = 1

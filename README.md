@@ -330,17 +330,6 @@ npm run dev
    npm start
    ```
 
-### Docker Deployment
-```dockerfile
-FROM node:16-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production
-COPY . .
-EXPOSE 5000
-CMD ["npm", "start"]
-```
-
 ## 📝 Sample Data
 
 The seed script creates sample data including:
