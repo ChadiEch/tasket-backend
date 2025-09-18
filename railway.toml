@@ -1,6 +1,8 @@
-# Simple Railway configuration for backend-only API
+# Railway configuration for Node.js backend API
 [build]
-# No build step needed for backend API
+builder = "nodejs"
+installCommand = "npm ci"
+buildCommand = "echo 'No build step required for backend API'"
 
 [deploy]
 startCommand = "node server.js"

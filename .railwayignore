@@ -1,0 +1,6 @@
+# Ignore files that might confuse Railway build detection
+pnpm-lock.yaml
+yarn.lock
+.vite
+dist/
+build/
