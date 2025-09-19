@@ -1,6 +1,6 @@
 {
   "build": {
-    "builder": "nodejs",
+    "builder": "nixpacks",
     "installCommand": "npm ci",
     "buildCommand": "echo 'No build step required for backend API'"
   },

@@ -1,6 +1,6 @@
 # Railway configuration for Node.js backend API
 [build]
-builder = "nodejs"
+builder = "nixpacks"
 installCommand = "npm ci"
 buildCommand = "echo 'No build step required for backend API'"
 
