@@ -1,7 +1,7 @@
 {
   "name": "tasket-backend",
   "version": "1.0.0",
-  "description": "Task Management System Backend API",
+  "description": "Task Management System Backend API (Backend-only, no frontend included)",
   "main": "server.js",
   "engines": {
     "node": ">=18.0.0",

@@ -1,6 +1,6 @@
-# TaskFlow Backend API
+# TaskFlow Backend API (Backend-only)
 
-A comprehensive Node.js backend API for the TaskFlow task management system built with Express.js, PostgreSQL, Sequelize ORM, and Socket.IO for real-time features.
+A comprehensive Node.js backend API for the TaskFlow task management system. This is a backend-only API built with Express.js, PostgreSQL, Sequelize ORM, and Socket.IO for real-time features. The frontend should be served separately.
 
 ## 🚀 Features
 
@@ -158,6 +158,35 @@ Tests use an in-memory SQLite database for fast, isolated testing:
    # Production mode
    npm start
    ```
+
+## ☁️ Deployment
+
+This is a backend-only API designed for deployment to platforms like Railway, Render, or any Node.js hosting platform. It does not include a built-in frontend and should be deployed separately from the frontend application.
+
+### Railway Deployment
+
+1. Create a new Railway project
+2. Connect your GitHub repository
+3. Railway will automatically detect this as a Node.js application
+4. The application will start with `npm start` which runs `node server.js`
+5. Set the required environment variables in the Railway dashboard
+
+### Environment Variables for Deployment
+
+```env
+# Database (use Railway PostgreSQL database)
+DATABASE_URL=postgresql://user:password@host:port/database
+
+# JWT Configuration (generate a secure secret)
+JWT_SECRET=your_super_secret_jwt_key_here
+JWT_EXPIRES_IN=7d
+
+# Server Configuration
+NODE_ENV=production
+
+# CORS Configuration (your frontend URL)
+FRONTEND_URL=https://your-frontend-domain.com
+```
 
 ## 🔧 Environment Variables
 

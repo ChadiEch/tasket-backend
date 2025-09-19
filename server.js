@@ -24,7 +24,12 @@ const io = new Server(server, {
       'http://localhost:5173',
       'http://localhost:5174',
       'http://127.0.0.1:5173',
-      'http://127.0.0.1:5174'
+      'http://127.0.0.1:5174',
+      // Railway deployment URLs
+      'https://tasket-production.up.railway.app',
+      'https://tasket-backend-production.up.railway.app',
+      // For dynamic subdomain support
+      /\.railway\.app$/
     ],
     methods: ['GET', 'POST'],
     credentials: true
@@ -60,7 +65,12 @@ const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
   'http://127.0.0.1:5173',
-  'http://127.0.0.1:5174'
+  'http://127.0.0.1:5174',
+  // Railway deployment URLs
+  'https://tasket-production.up.railway.app',
+  'https://tasket-backend-production.up.railway.app',
+  // For dynamic subdomain support
+  /\.railway\.app$/
 ];
 
 app.use(cors({
@@ -68,7 +78,17 @@ app.use(cors({
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
     
-    if (allowedOrigins.indexOf(origin) !== -1) {
+    // Check if origin is in allowed list or matches Railway pattern
+    const isAllowedOrigin = allowedOrigins.some(allowedOrigin => {
+      if (typeof allowedOrigin === 'string') {
+        return origin === allowedOrigin;
+      } else if (allowedOrigin instanceof RegExp) {
+        return allowedOrigin.test(origin);
+      }
+      return false;
+    });
+    
+    if (isAllowedOrigin) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
@@ -108,7 +128,9 @@ app.use('/api/projects', require('./routes/projects'));
 app.use('/api/notifications', require('./routes/notifications'));
 
 // Serve static frontend files in production
-if (process.env.NODE_ENV === 'production') {
+// NOTE: This is a backend-only API. The following code is for local development only.
+// In production, the frontend should be served separately.
+if (process.env.NODE_ENV === 'production' && process.env.SERVE_FRONTEND === 'true') {
   // Serve static files from the frontend build
   app.use(express.static(path.join(__dirname, '../tasket/dist')));
   

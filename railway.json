@@ -1,0 +1,11 @@
+{
+  "build": {
+    "builder": "nodejs",
+    "installCommand": "npm ci",
+    "buildCommand": "echo 'No build step required for backend API'"
+  },
+  "deploy": {
+    "startCommand": "node server.js",
+    "numReplicas": 1
+  }
+}
