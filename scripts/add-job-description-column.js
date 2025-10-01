@@ -21,4 +21,4 @@ async function addJobDescriptionColumn() {
   }
 }
 
-addJobDescriptionColumn();
+addJobDescriptionColumn(); 
