@@ -1,8 +1,7 @@
 const express = require('express');
 const { body } = require('express-validator');
 const { auth, adminAuth } = require('../middleware/auth');
-const multer = require('multer');
-const path = require('path');
+const { taskAttachmentUpload, compressUploadedFiles } = require('../middleware/upload'); // Use shared upload middleware
 const {
   getEmployees,
   getEmployee,
@@ -13,34 +12,6 @@ const {
 
 const router = express.Router();
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/');
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
-
-const fileFilter = (req, file, cb) => {
-  // Accept only image files
-  if (file.mimetype.startsWith('image/')) {
-    cb(null, true);
-  } else {
-    cb(new Error('Only image files are allowed!'), false);
-  }
-};
-
-const upload = multer({ 
-  storage: storage,
-  fileFilter: fileFilter,
-  limits: {
-    fileSize: 50 * 1024 * 1024 // Increased from 5MB to 50MB
-  }
-});
- 
 // @route   GET /api/employees
 // @desc    Get all employees
 // @access  Private
@@ -56,7 +27,8 @@ router.get('/:id', auth, getEmployee);
 // @access  Admin
 router.post('/', 
   adminAuth,
-  upload.single('photo'),
+  taskAttachmentUpload.single('photo'), // Use shared upload middleware
+  compressUploadedFiles, // Add compression middleware
   [
     body('email').isEmail().normalizeEmail(),
     body('password').isLength({ min: 6 }),
@@ -78,7 +50,8 @@ router.post('/',
 // @access  Admin
 router.put('/:id', 
   adminAuth,
-  upload.single('photo'),
+  taskAttachmentUpload.single('photo'), // Use shared upload middleware
+  compressUploadedFiles, // Add compression middleware
   [
     body('name').optional().trim().isLength({ min: 2 }),
     body('position').optional().trim(),

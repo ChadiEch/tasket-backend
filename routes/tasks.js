@@ -2,7 +2,7 @@ const express = require('express');
 const { body } = require('express-validator');
 const validator = require('validator');
 const { auth } = require('../middleware/auth');
-const { taskAttachmentUpload } = require('../middleware/upload'); // Add upload middleware
+const { taskAttachmentUpload, compressUploadedFiles } = require('../middleware/upload'); // Add upload middleware
 const {
   getTasks,
   getTask,
@@ -28,7 +28,8 @@ router.get('/:id', auth, getTask);
 // @access  Private
 router.post('/', [
   auth,
-  taskAttachmentUpload.array('attachments', 20) // Increased from 10 to 20 attachment files
+  taskAttachmentUpload.array('attachments', 20), // Increased from 10 to 20 attachment files
+  compressUploadedFiles // Add compression middleware
   // Remove validation middleware that conflicts with FormData
 ], (req, res, next) => {
   // Add error handling for multer errors
@@ -43,7 +44,8 @@ router.post('/', [
 // @access  Private
 router.put('/:id', [
   auth,
-  taskAttachmentUpload.array('attachments', 30) // Increased from 10 to 30 attachment files
+  taskAttachmentUpload.array('attachments', 30), // Increased from 10 to 30 attachment files
+  compressUploadedFiles // Add compression middleware
   // Remove validation middleware that conflicts with FormData
 ], (req, res, next) => {
   // Add error handling for multer errors
