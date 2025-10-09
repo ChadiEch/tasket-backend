@@ -12,10 +12,11 @@ const deleteOldAttachment = (oldAttachmentPath) => {
       
       // Extract just the filename to prevent path traversal attacks
       const filename = path.basename(oldAttachmentPath);
-      const fullPath = path.join(__dirname, '..', 'uploads', filename);
+      const uploadsDir = process.env.UPLOADS_DIR || path.join(__dirname, '..', 'persistent_uploads');
+      const fullPath = path.join(uploadsDir, filename);
       
       // Additional safety check: ensure the file exists and is in the uploads directory
-      if (fs.existsSync(fullPath) && fullPath.startsWith(path.resolve(__dirname, '..', 'uploads'))) {
+      if (fs.existsSync(fullPath) && fullPath.startsWith(path.resolve(uploadsDir))) {
         fs.unlinkSync(fullPath);
         console.log('Successfully deleted old attachment:', fullPath);
       } else {

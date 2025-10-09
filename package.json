@@ -12,6 +12,7 @@
     "dev": "nodemon server.js",
     "seed": "node scripts/seed.js",
     "seed:prod": "NODE_ENV=production node scripts/seed.js",
+    "migrate:uploads": "node scripts/migrateUploads.js",
     "build": "echo 'No build step required for backend API'",
     "build:full": "npm install && npm run seed:prod",
     "test": "jest",

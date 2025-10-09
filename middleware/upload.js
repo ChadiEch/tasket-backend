@@ -2,8 +2,11 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
+// Use a more persistent directory for uploads
+// In production, you might want to use an environment variable for this
+const uploadsDir = process.env.UPLOADS_DIR || path.join(__dirname, '..', 'persistent_uploads');
+
 // Ensure uploads directory exists
-const uploadsDir = path.join(__dirname, '..', 'uploads');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
@@ -11,7 +14,7 @@ if (!fs.existsSync(uploadsDir)) {
 // Configure multer for task attachment uploads
 const taskAttachmentStorage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/');
+    cb(null, uploadsDir);
   },
   filename: (req, file, cb) => {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
