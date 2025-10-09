@@ -40,7 +40,7 @@ const upload = multer({
     fileSize: 50 * 1024 * 1024 // Increased from 5MB to 50MB
   }
 });
-
+ 
 // @route   GET /api/employees
 // @desc    Get all employees
 // @access  Private
