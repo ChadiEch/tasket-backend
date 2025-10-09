@@ -109,26 +109,7 @@ if (process.env.NODE_ENV === 'development') {
 // Serve uploaded files from the persistent uploads directory
 const uploadsDir = process.env.UPLOADS_DIR || path.join(__dirname, 'persistent_uploads');
 app.use('/uploads', cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    // Check if origin is in allowed list or matches Railway pattern
-    const isAllowedOrigin = allowedOrigins.some(allowedOrigin => {
-      if (typeof allowedOrigin === 'string') {
-        return origin === allowedOrigin;
-      } else if (allowedOrigin instanceof RegExp) {
-        return allowedOrigin.test(origin);
-      }
-      return false;
-    });
-    
-    if (isAllowedOrigin) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+  origin: true, // Allow all origins
   credentials: true
 }), express.static(uploadsDir));
 
