@@ -169,10 +169,10 @@ app.use((err, req, res, next) => {
   // Handle multer errors
   if (err instanceof multer.MulterError) {
     if (err.code === 'LIMIT_FILE_SIZE') {
-      return res.status(400).json({ message: 'File size too large. Maximum size is 50MB for task attachments and 10MB for images.' });
+      return res.status(400).json({ message: 'File size too large. Maximum size is 25MB for task attachments and 10MB for images.' });
     }
     if (err.code === 'LIMIT_FILE_COUNT') {
-      return res.status(400).json({ message: 'Too many files uploaded. Maximum is 30 attachments per task.' });
+      return res.status(400).json({ message: 'Too many files uploaded. Maximum is 20 attachments per task.' });
     }
     if (err.code === 'LIMIT_UNEXPECTED_FILE') {
       return res.status(400).json({ message: 'Unexpected field in upload. Please check your form data.' });
