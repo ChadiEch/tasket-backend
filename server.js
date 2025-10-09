@@ -108,19 +108,18 @@ if (process.env.NODE_ENV === 'development') {
 
 // Serve uploaded files from the persistent uploads directory
 const uploadsDir = process.env.UPLOADS_DIR || path.join(__dirname, 'persistent_uploads');
-app.use('/uploads', cors({
-  origin: true, // Allow all origins
-  credentials: true,
-  optionsSuccessStatus: 200 // Some legacy browsers choke on 204
-}), (req, res, next) => {
-  // Add additional headers for file access
+
+// Custom CORS middleware for uploads
+app.use('/uploads', (req, res, next) => {
+  console.log('Uploads request:', req.method, req.url, req.headers.origin);
   res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.header('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.header('Access-Control-Max-Age', '86400'); // 24 hours
   
   // Handle preflight requests
   if (req.method === 'OPTIONS') {
+    console.log('Handling OPTIONS request for uploads');
     return res.status(200).end();
   }
   
