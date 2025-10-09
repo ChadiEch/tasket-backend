@@ -643,6 +643,7 @@ const updateTask = async (req, res) => {
 const deleteTask = async (req, res) => {
   try {
     const { id } = req.params;
+    const { action } = req.query; // 'delete' or 'trash'
 
     const task = await Task.findByPk(id);
     if (!task) {
@@ -654,6 +655,162 @@ const deleteTask = async (req, res) => {
       return res.status(403).json({ message: 'Access denied' });
     }
 
+    if (action === 'trash') {
+      // Move task to trash and save the previous status
+      await task.update({
+        status: 'trashed',
+        status_before_trash: task.status,
+        trashed_at: new Date()
+      });
+
+      // Emit WebSocket event for real-time updates
+      const websocketService = req.app.get('websocketService');
+      if (websocketService) {
+        websocketService.notifyTaskUpdated(task, req.user);
+      }
+
+      return res.json({ message: 'Task moved to trash successfully' });
+    } else {
+      // Permanently delete task and its attachments
+      // First, delete associated files from the file system
+      if (task.attachments && Array.isArray(task.attachments)) {
+        const fs = require('fs');
+        const path = require('path');
+        
+        // Get the uploads directory
+        const uploadsDir = process.env.UPLOADS_DIR || path.join(__dirname, '..', 'persistent_uploads');
+        
+        // Delete each attachment file
+        for (const attachment of task.attachments) {
+          if (attachment.url && attachment.url.startsWith('/uploads/')) {
+            try {
+              // Extract filename from URL
+              const filename = path.basename(attachment.url);
+              const filePath = path.join(uploadsDir, filename);
+              
+              // Check if file exists and delete it
+              if (fs.existsSync(filePath)) {
+                fs.unlinkSync(filePath);
+                console.log(`Deleted attachment file: ${filePath}`);
+              }
+            } catch (error) {
+              console.error('Error deleting attachment file:', error);
+            }
+          }
+        }
+      }
+
+      // Delete the task from database
+      await task.destroy();
+
+      // Emit WebSocket event for real-time updates
+      const websocketService = req.app.get('websocketService');
+      if (websocketService) {
+        websocketService.notifyTaskDeleted(id, task.department_id, req.user);
+      }
+
+      return res.json({ message: 'Task deleted permanently successfully' });
+    }
+  } catch (error) {
+    console.error('Delete task error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// New function to restore task from trash
+const restoreTask = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const task = await Task.findByPk(id);
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+
+    // Check if task is in trash
+    if (task.status !== 'trashed') {
+      return res.status(400).json({ message: 'Task is not in trash' });
+    }
+
+    // Check if user has permission to restore this task
+    if (req.user.role !== 'admin' && task.created_by !== req.user.id) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    // Restore task to its previous status or default to 'planned'
+    const previousStatus = task.status_before_trash || 'planned';
+    
+    await task.update({
+      status: previousStatus,
+      restored_at: new Date(),
+      trashed_at: null
+    });
+
+    // Emit WebSocket event for real-time updates
+    const websocketService = req.app.get('websocketService');
+    if (websocketService) {
+      websocketService.notifyTaskUpdated(task, req.user);
+    }
+
+    res.json({ 
+      message: 'Task restored successfully',
+      task 
+    });
+  } catch (error) {
+    console.error('Restore task error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// New function to permanently delete trashed tasks
+const permanentlyDeleteTask = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const task = await Task.findByPk(id);
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+
+    // Check if task is in trash
+    if (task.status !== 'trashed') {
+      return res.status(400).json({ message: 'Task is not in trash' });
+    }
+
+    // Check if user has permission to delete this task
+    if (req.user.role !== 'admin' && task.created_by !== req.user.id) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    // Delete associated files from the file system
+    if (task.attachments && Array.isArray(task.attachments)) {
+      const fs = require('fs');
+      const path = require('path');
+      
+      // Get the uploads directory
+      const uploadsDir = process.env.UPLOADS_DIR || path.join(__dirname, '..', 'persistent_uploads');
+      
+      // Delete each attachment file
+      for (const attachment of task.attachments) {
+        if (attachment.url && attachment.url.startsWith('/uploads/')) {
+          try {
+            // Extract filename from URL
+            const filename = path.basename(attachment.url);
+            const filePath = path.join(uploadsDir, filename);
+            
+            // Check if file exists and delete it
+            if (fs.existsSync(filePath)) {
+              fs.unlinkSync(filePath);
+              console.log(`Deleted attachment file: ${filePath}`);
+            }
+          } catch (error) {
+            console.error('Error deleting attachment file:', error);
+          }
+        }
+      }
+    }
+
+    // Delete the task from database
     await task.destroy();
 
     // Emit WebSocket event for real-time updates
@@ -662,9 +819,50 @@ const deleteTask = async (req, res) => {
       websocketService.notifyTaskDeleted(id, task.department_id, req.user);
     }
 
-    res.json({ message: 'Task deleted successfully' });
+    res.json({ message: 'Task permanently deleted successfully' });
   } catch (error) {
-    console.error('Delete task error:', error);
+    console.error('Permanently delete task error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// New function to get trashed tasks
+const getTrashedTasks = async (req, res) => {
+  try {
+    const where = {
+      status: 'trashed'
+    };
+
+    // If not admin, only show trashed tasks created by user
+    if (req.user.role !== 'admin') {
+      where.created_by = req.user.id;
+    }
+
+    const tasks = await Task.findAll({
+      where,
+      include: [
+        {
+          model: Employee,
+          as: 'assignedToEmployee',
+          attributes: ['id', 'name', 'email', 'position']
+        },
+        {
+          model: Employee,
+          as: 'createdByEmployee',
+          attributes: ['id', 'name', 'email']
+        },
+        {
+          model: Department,
+          as: 'department',
+          attributes: ['id', 'name']
+        }
+      ],
+      order: [['trashed_at', 'DESC']]
+    });
+
+    res.json({ tasks });
+  } catch (error) {
+    console.error('Get trashed tasks error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
@@ -674,5 +872,8 @@ module.exports = {
   getTask,
   createTask,
   updateTask,
-  deleteTask
+  deleteTask,
+  restoreTask,
+  permanentlyDeleteTask,
+  getTrashedTasks
 };

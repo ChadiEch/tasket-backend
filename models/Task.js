@@ -40,7 +40,7 @@ const Task = sequelize.define('Task', {
     }
   },
   status: {
-    type: DataTypes.ENUM('planned', 'in-progress', 'completed', 'cancelled'),
+    type: DataTypes.ENUM('planned', 'in-progress', 'completed', 'cancelled', 'trashed'),
     defaultValue: 'planned'
   },
   priority: {
@@ -130,6 +130,21 @@ const Task = sequelize.define('Task', {
         }
       }
     }
+  },
+  // Add trashed_at field to track when task was moved to trash
+  trashed_at: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
+  // Add restored_at field to track when task was restored from trash
+  restored_at: {
+    type: DataTypes.DATE,
+    allowNull: true
+  },
+  // Add status_before_trash to track the previous status when moving to trash
+  status_before_trash: {
+    type: DataTypes.STRING,
+    allowNull: true
   },
   created_at: {
     type: DataTypes.DATE,

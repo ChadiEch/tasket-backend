@@ -44,6 +44,9 @@ const websocketService = new WebSocketService(io);
 // Initialize Due Date Notification service
 const dueDateNotificationService = new DueDateNotificationService(websocketService);
 
+// Initialize Trash Cleanup service
+require('./services/trashCleanupService');
+
 // Make WebSocket service available to routes
 app.set('websocketService', websocketService);
 

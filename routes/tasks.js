@@ -8,7 +8,10 @@ const {
   getTask,
   createTask,
   updateTask,
-  deleteTask
+  deleteTask,
+  restoreTask,
+  permanentlyDeleteTask,
+  getTrashedTasks
 } = require('../controllers/taskController');
 
 const router = express.Router();
@@ -17,6 +20,11 @@ const router = express.Router();
 // @desc    Get all tasks (filtered by user role)
 // @access  Private
 router.get('/', auth, getTasks);
+
+// @route   GET /api/tasks/trashed
+// @desc    Get all trashed tasks
+// @access  Private
+router.get('/trashed', auth, getTrashedTasks);
 
 // @route   GET /api/tasks/:id
 // @desc    Get task by ID
@@ -55,9 +63,19 @@ router.put('/:id', [
   next();
 }, updateTask);
 
+// @route   PUT /api/tasks/:id/restore
+// @desc    Restore a trashed task
+// @access  Private
+router.put('/:id/restore', auth, restoreTask);
+
 // @route   DELETE /api/tasks/:id
-// @desc    Delete a task
+// @desc    Delete a task (move to trash or permanent delete)
 // @access  Private
 router.delete('/:id', auth, deleteTask);
+
+// @route   DELETE /api/tasks/:id/permanent
+// @desc    Permanently delete a trashed task
+// @access  Private
+router.delete('/:id/permanent', auth, permanentlyDeleteTask);
 
 module.exports = router;
