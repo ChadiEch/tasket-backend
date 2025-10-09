@@ -110,8 +110,22 @@ if (process.env.NODE_ENV === 'development') {
 const uploadsDir = process.env.UPLOADS_DIR || path.join(__dirname, 'persistent_uploads');
 app.use('/uploads', cors({
   origin: true, // Allow all origins
-  credentials: true
-}), express.static(uploadsDir));
+  credentials: true,
+  optionsSuccessStatus: 200 // Some legacy browsers choke on 204
+}), (req, res, next) => {
+  // Add additional headers for file access
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.header('Access-Control-Max-Age', '86400'); // 24 hours
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  
+  next();
+}, express.static(uploadsDir));
 
 // Health check endpoint
 app.get('/health', (req, res) => {
