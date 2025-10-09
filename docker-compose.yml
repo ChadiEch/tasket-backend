@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:14
+    container_name: tasket_db
+    restart: always
+    environment:
+      POSTGRES_DB: tasket
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  # Backend API
+  backend:
+    build:
+      context: ./tasket-backend
+      dockerfile: Dockerfile
+    container_name: tasket_backend
+    restart: always
+    ports:
+      - "5002:5002"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/tasket
+      - JWT_SECRET=tasket_jwt_secret_here
+      - PORT=5002
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=tasket
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+    depends_on:
+      - db
+    volumes:
+      - ./tasket-backend:/app
+      - /app/node_modules
+      - ./tasket-backend/persistent_uploads:/app/persistent_uploads
+
+  # Frontend
+  frontend:
+    build:
+      context: ./tasket
+      dockerfile: Dockerfile.frontend
+    container_name: tasket_frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_BASE_URL=http://localhost:5002/api
+      - VITE_WS_BASE_URL=http://localhost:5002
+    depends_on:
+      - backend
+    volumes:
+      - ./tasket/src:/app/src
+      - ./tasket/public:/app/public
+      - /app/node_modules
+
+volumes:
+  postgres_data:

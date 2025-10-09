@@ -335,6 +335,38 @@ Authorization: Bearer <your-jwt-token>
 - Departments can have manager employees
 - Tasks can have multiple comments from employees
 
+## 📁 File Uploads and Persistence
+
+Uploaded files are stored in the `persistent_uploads` directory to ensure they persist across server restarts and deployments.
+
+### Configuration
+
+The upload directory can be configured using the `UPLOADS_DIR` environment variable:
+
+```env
+UPLOADS_DIR=./persistent_uploads
+```
+
+### Docker Deployment
+
+When deploying with Docker, ensure that the `persistent_uploads` directory is mapped to a volume to maintain file persistence:
+
+```yaml
+volumes:
+  - ./persistent_uploads:/app/persistent_uploads
+```
+
+### Railway Deployment
+
+Railway automatically creates and manages volumes for persistent storage. Ensure that the `UPLOADS_DIR` environment variable is set to `/app/persistent_uploads` in your Railway project settings.
+
+### Best Practices
+
+1. Always test file persistence after deployment configuration changes
+2. Implement backup strategies for important uploaded files
+3. Monitor storage usage to prevent running out of space
+4. Consider using external storage services (like AWS S3) for production environments
+
 ## 🚀 Deployment
 
 ### Local Development
