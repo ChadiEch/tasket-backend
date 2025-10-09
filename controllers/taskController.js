@@ -137,12 +137,17 @@ const getTask = async (req, res) => {
 
 const createTask = async (req, res) => {
   try {
+    console.log('Create task request received');
+    console.log('Request files:', req.files);
+    console.log('Request body:', req.body);
+    
     // Handle task data - either from body or parsed from form data
     let taskData = {};
     if (req.body.data) {
       // If data is sent as JSON string in form data
       try {
         taskData = JSON.parse(req.body.data);
+        console.log('Parsed task data from form data:', taskData);
       } catch (parseError) {
         console.error('Error parsing task data:', parseError);
         return res.status(400).json({ message: 'Invalid task data format' });
@@ -150,6 +155,7 @@ const createTask = async (req, res) => {
     } else {
       // If data is sent as regular form fields
       taskData = req.body;
+      console.log('Task data from regular form fields:', taskData);
     }
 
     // Validate required fields
@@ -184,6 +190,9 @@ const createTask = async (req, res) => {
 
     // Process uploaded files
     let processedAttachments = Array.isArray(attachments) ? attachments : [];
+    console.log('Initial attachments:', processedAttachments);
+    console.log('Uploaded files:', req.files);
+    
     if (req.files && req.files.length > 0) {
       // Add uploaded files to attachments
       const uploadedFiles = req.files.map(file => {
@@ -202,10 +211,14 @@ const createTask = async (req, res) => {
         };
       });
       
+      console.log('Uploaded files processed:', uploadedFiles);
+      
       // Filter out placeholder attachments (those with empty URLs)
       // This ensures we only keep valid attachments and replace placeholders with actual uploaded files
       const filteredAttachments = processedAttachments.filter(attachment => attachment && attachment.url);
+      console.log('Filtered attachments:', filteredAttachments);
       processedAttachments = [...filteredAttachments, ...uploadedFiles];
+      console.log('Final processed attachments:', processedAttachments);
     }
 
     // Handle start_date for tasks created as in-progress
@@ -240,6 +253,8 @@ const createTask = async (req, res) => {
       tags: Array.isArray(tags) ? tags : [],
       attachments: processedAttachments
     };
+
+    console.log('Final task data to be created:', finalTaskData);
 
     const task = await Task.create(finalTaskData);
 
@@ -305,7 +320,16 @@ const createTask = async (req, res) => {
     });
   } catch (error) {
     console.error('Create task error:', error);
-    res.status(500).json({ message: 'Server error' });
+    // Send more detailed error information in development
+    if (process.env.NODE_ENV === 'development') {
+      res.status(500).json({ 
+        message: 'Server error', 
+        error: error.message,
+        stack: error.stack
+      });
+    } else {
+      res.status(500).json({ message: 'Server error' });
+    }
   }
 };
 
@@ -602,7 +626,16 @@ const updateTask = async (req, res) => {
     });
   } catch (error) {
     console.error('Update task error:', error);
-    res.status(500).json({ message: 'Server error' });
+    // Send more detailed error information in development
+    if (process.env.NODE_ENV === 'development') {
+      res.status(500).json({ 
+        message: 'Server error', 
+        error: error.message,
+        stack: error.stack
+      });
+    } else {
+      res.status(500).json({ message: 'Server error' });
+    }
   }
 };
 

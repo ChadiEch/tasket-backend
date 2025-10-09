@@ -28,9 +28,15 @@ router.get('/:id', auth, getTask);
 // @access  Private
 router.post('/', [
   auth,
-  taskAttachmentUpload.array('attachments', 30) // Handle up to 10 attachment files
+  taskAttachmentUpload.array('attachments', 10) // Handle up to 10 attachment files
   // Remove validation middleware that conflicts with FormData
-], createTask);
+], (req, res, next) => {
+  // Add error handling for multer errors
+  if (req.files && req.files.length > 10) {
+    return res.status(400).json({ message: 'Too many files uploaded. Maximum is 10 attachments per task.' });
+  }
+  next();
+}, createTask);
 
 // @route   PUT /api/tasks/:id
 // @desc    Update a task
@@ -39,7 +45,13 @@ router.put('/:id', [
   auth,
   taskAttachmentUpload.array('attachments', 10) // Handle up to 10 attachment files
   // Remove validation middleware that conflicts with FormData
-], updateTask);
+], (req, res, next) => {
+  // Add error handling for multer errors
+  if (req.files && req.files.length > 10) {
+    return res.status(400).json({ message: 'Too many files uploaded. Maximum is 10 attachments per task.' });
+  }
+  next();
+}, updateTask);
 
 // @route   DELETE /api/tasks/:id
 // @desc    Delete a task

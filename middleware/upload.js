@@ -52,7 +52,8 @@ const taskAttachmentUpload = multer({
   storage: taskAttachmentStorage,
   fileFilter: taskAttachmentFileFilter,
   limits: {
-    fileSize: 200 * 1024 * 1024 // 200MB limit
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+    files: 10 // Limit to 10 files
   }
 });
 

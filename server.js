@@ -1,4 +1,4 @@
-const express = require('express');
+                                                                                                                                                   const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
@@ -99,7 +99,7 @@ app.use(cors({
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Logging
 if (process.env.NODE_ENV === 'development') {
@@ -169,8 +169,16 @@ app.use((err, req, res, next) => {
   // Handle multer errors
   if (err instanceof multer.MulterError) {
     if (err.code === 'LIMIT_FILE_SIZE') {
-      return res.status(400).json({ message: 'File size too large. Maximum size is 5MB.' });
+      return res.status(400).json({ message: 'File size too large. Maximum size is 10MB for task attachments and 5MB for images.' });
     }
+    if (err.code === 'LIMIT_FILE_COUNT') {
+      return res.status(400).json({ message: 'Too many files uploaded. Maximum is 10 attachments per task.' });
+    }
+    if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+      return res.status(400).json({ message: 'Unexpected field in upload. Please check your form data.' });
+    }
+    // Handle any other Multer errors
+    return res.status(400).json({ message: `Upload error: ${err.message}` });
   }
   
   res.status(err.status || 500).json({

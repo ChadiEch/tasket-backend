@@ -84,10 +84,51 @@ const Task = sequelize.define('Task', {
     defaultValue: [],
     get() {
       const rawValue = this.getDataValue('attachments');
-      return rawValue ? (Array.isArray(rawValue) ? rawValue : JSON.parse(rawValue)) : [];
+      if (!rawValue) return [];
+      
+      // Handle different possible formats
+      if (Array.isArray(rawValue)) return rawValue;
+      
+      try {
+        // Try to parse if it's a JSON string
+        return JSON.parse(rawValue);
+      } catch (e) {
+        // If parsing fails, return empty array
+        console.error('Error parsing attachments JSON:', e);
+        return [];
+      }
     },
     set(value) {
-      this.setDataValue('attachments', Array.isArray(value) ? value : []);
+      // Ensure we always store as an array
+      const arrayValue = Array.isArray(value) ? value : [];
+      this.setDataValue('attachments', arrayValue);
+    },
+    validate: {
+      // Custom validator to ensure attachments are properly formatted
+      isValidAttachments(value) {
+        if (!Array.isArray(value)) {
+          throw new Error('Attachments must be an array');
+        }
+        
+        // Validate each attachment
+        for (const attachment of value) {
+          if (!attachment || typeof attachment !== 'object') {
+            throw new Error('Each attachment must be an object');
+          }
+          
+          if (!attachment.id) {
+            throw new Error('Each attachment must have an id');
+          }
+          
+          if (!attachment.type) {
+            throw new Error('Each attachment must have a type');
+          }
+          
+          if (!attachment.url && !attachment.name) {
+            throw new Error('Each attachment must have a url or name');
+          }
+        }
+      }
     }
   },
   created_at: {
