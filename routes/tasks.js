@@ -28,7 +28,7 @@ router.get('/:id', auth, getTask);
 // @access  Private
 router.post('/', [
   auth,
-  taskAttachmentUpload.array('attachments', 10) // Handle up to 10 attachment files
+  taskAttachmentUpload.array('attachments', 30) // Handle up to 10 attachment files
   // Remove validation middleware that conflicts with FormData
 ], createTask);
 
