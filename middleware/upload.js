@@ -117,23 +117,43 @@ const compressImage = async (filePath, options = {}) => {
 const taskAttachmentFileFilter = (req, file, cb) => {
   // Accept documents, images, videos, and other common file types
   const allowedTypes = [
+    // Image files
     'image/jpeg',
     'image/png',
     'image/gif',
+    'image/webp',
+    'image/svg+xml',
+    'image/bmp',
+    'image/tiff',
+    
+    // Document files
     'application/pdf',
     'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     'application/vnd.ms-excel',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.ms-powerpoint',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
     'text/plain',
+    'text/csv',
+    'application/rtf',
     'application/zip',
     'application/x-zip-compressed',
+    'application/x-rar-compressed',
+    'application/x-7z-compressed',
+    
+    // Video files
     'video/mp4',
     'video/webm',
     'video/ogg',
     'video/quicktime',
     'video/x-msvideo',
-    'video/x-matroska'
+    'video/x-matroska',
+    'video/avi',
+    'video/x-flv',
+    'video/mpeg',
+    'video/3gpp',
+    'video/3gpp2'
   ];
   
   if (allowedTypes.includes(file.mimetype)) {
