@@ -21,6 +21,30 @@ console.log('  R2_SECRET_ACCESS_KEY:', R2_SECRET_ACCESS_KEY ? 'SET' : 'NOT SET')
 console.log('  R2_BUCKET_NAME:', R2_BUCKET_NAME);
 console.log('  R2_ENDPOINT:', R2_ENDPOINT);
 
+// Function to check for invalid characters in credentials
+const checkForInvalidChars = (str, name) => {
+  if (!str) return false;
+  
+  // Check for common invalid characters in HTTP headers
+  const invalidChars = ['\n', '\r', '\t', '\0'];
+  for (const char of invalidChars) {
+    if (str.includes(char)) {
+      console.error(`❌ Invalid character '${char}' found in ${name}`);
+      return true;
+    }
+  }
+  
+  // Check for non-ASCII characters
+  for (let i = 0; i < str.length; i++) {
+    if (str.charCodeAt(i) > 127) {
+      console.error(`❌ Non-ASCII character found in ${name} at position ${i}`);
+      return true;
+    }
+  }
+  
+  return false;
+};
+
 // Check if all required variables are set when R2 is enabled
 let isR2ProperlyConfigured = false;
 if (USE_CLOUDFLARE_R2) {
@@ -32,8 +56,20 @@ if (USE_CLOUDFLARE_R2) {
     if (!R2_BUCKET_NAME) console.error('   - R2_BUCKET_NAME is missing');
     console.error('⚠️  Cloudflare R2 will not work until these are set');
   } else {
-    console.log('✅ All Cloudflare R2 environment variables are properly set');
-    isR2ProperlyConfigured = true;
+    // Check for invalid characters in credentials
+    let hasInvalidChars = false;
+    hasInvalidChars |= checkForInvalidChars(R2_ACCOUNT_ID, 'R2_ACCOUNT_ID');
+    hasInvalidChars |= checkForInvalidChars(R2_ACCESS_KEY_ID, 'R2_ACCESS_KEY_ID');
+    hasInvalidChars |= checkForInvalidChars(R2_SECRET_ACCESS_KEY, 'R2_SECRET_ACCESS_KEY');
+    hasInvalidChars |= checkForInvalidChars(R2_BUCKET_NAME, 'R2_BUCKET_NAME');
+    
+    if (hasInvalidChars) {
+      console.error('❌ Cloudflare R2 credentials contain invalid characters');
+      console.error('⚠️  Please check your Railway environment variables for extra characters (like newlines)');
+    } else {
+      console.log('✅ All Cloudflare R2 environment variables are properly set');
+      isR2ProperlyConfigured = true;
+    }
   }
 }
 
@@ -45,8 +81,8 @@ if (isR2ProperlyConfigured) {
       region: 'auto',
       endpoint: R2_ENDPOINT,
       credentials: {
-        accessKeyId: R2_ACCESS_KEY_ID,
-        secretAccessKey: R2_SECRET_ACCESS_KEY,
+        accessKeyId: R2_ACCESS_KEY_ID?.trim(), // Trim whitespace
+        secretAccessKey: R2_SECRET_ACCESS_KEY?.trim(), // Trim whitespace
       },
     });
     console.log('✅ Cloudflare R2 client initialized successfully');
@@ -104,8 +140,8 @@ const uploadToR2 = async (fileBuffer, filename, mimetype) => {
   }
 
   const params = {
-    Bucket: R2_BUCKET_NAME,
-    Key: filename,
+    Bucket: R2_BUCKET_NAME?.trim(), // Trim whitespace
+    Key: filename?.trim(), // Trim whitespace
     Body: fileBuffer,
     ContentType: mimetype,
   };
@@ -114,7 +150,7 @@ const uploadToR2 = async (fileBuffer, filename, mimetype) => {
     console.log(`Uploading file to Cloudflare R2: ${filename}`);
     const command = new PutObjectCommand(params);
     const response = await s3Client.send(command);
-    const publicUrl = `https://${R2_BUCKET_NAME}.${R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${filename}`;
+    const publicUrl = `https://${R2_BUCKET_NAME?.trim()}.${R2_ACCOUNT_ID?.trim()}.r2.cloudflarestorage.com/${filename}`;
     console.log(`Successfully uploaded file to Cloudflare R2: ${publicUrl}`);
     return publicUrl;
   } catch (error) {
@@ -146,8 +182,8 @@ const deleteFromR2 = async (filename) => {
   }
 
   const params = {
-    Bucket: R2_BUCKET_NAME,
-    Key: filename,
+    Bucket: R2_BUCKET_NAME?.trim(), // Trim whitespace
+    Key: filename?.trim(), // Trim whitespace
   };
 
   try {
