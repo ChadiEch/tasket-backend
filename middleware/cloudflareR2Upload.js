@@ -30,7 +30,7 @@ if (USE_CLOUDFLARE_R2) {
     if (!R2_ACCESS_KEY_ID) console.error('   - R2_ACCESS_KEY_ID is missing');
     if (!R2_SECRET_ACCESS_KEY) console.error('   - R2_SECRET_ACCESS_KEY is missing');
     if (!R2_BUCKET_NAME) console.error('   - R2_BUCKET_NAME is missing');
-    console.error('⚠️  Falling back to local storage');
+    console.error('⚠️  Cloudflare R2 will not work until these are set');
   } else {
     console.log('✅ All Cloudflare R2 environment variables are properly set');
     isR2ProperlyConfigured = true;
@@ -95,7 +95,7 @@ const taskAttachmentFileFilter = (req, file, cb) => {
 const uploadToR2 = async (fileBuffer, filename, mimetype) => {
   // Check if R2 is properly configured
   if (!isR2ProperlyConfigured) {
-    throw new Error('Cloudflare R2 is not properly configured. Please check environment variables.');
+    throw new Error('Cloudflare R2 is enabled but not properly configured. Please check environment variables.');
   }
   
   if (!R2_BUCKET_NAME) {
@@ -118,6 +118,15 @@ const uploadToR2 = async (fileBuffer, filename, mimetype) => {
     return publicUrl;
   } catch (error) {
     console.error('Error uploading to R2:', error);
+    // Log more details about the error
+    if (error.$metadata) {
+      console.error('Error metadata:', {
+        httpStatusCode: error.$metadata.httpStatusCode,
+        requestId: error.$metadata.requestId,
+        attempts: error.$metadata.attempts,
+        totalRetryDelay: error.$metadata.totalRetryDelay
+      });
+    }
     throw error;
   }
 };
@@ -147,6 +156,15 @@ const deleteFromR2 = async (filename) => {
     console.log(`Successfully deleted file from Cloudflare R2: ${filename}`);
   } catch (error) {
     console.error('Error deleting from R2:', error);
+    // Log more details about the error
+    if (error.$metadata) {
+      console.error('Error metadata:', {
+        httpStatusCode: error.$metadata.httpStatusCode,
+        requestId: error.$metadata.requestId,
+        attempts: error.$metadata.attempts,
+        totalRetryDelay: error.$metadata.totalRetryDelay
+      });
+    }
     throw error;
   }
 };
@@ -182,10 +200,22 @@ const uploadToR2Middleware = async (req, res, next) => {
       }
     } catch (error) {
       console.error('Error during R2 upload:', error);
-      return res.status(500).json({ 
-        message: 'Error uploading files to Cloudflare R2 storage', 
-        error: error.message 
-      });
+      // Provide more detailed error information
+      const errorMessage = error.message || 'Unknown error during R2 upload';
+      const errorDetails = {
+        message: 'Error uploading files to Cloudflare R2 storage',
+        error: errorMessage
+      };
+      
+      // Add AWS-specific error details if available
+      if (error.$metadata) {
+        errorDetails.details = {
+          httpStatusCode: error.$metadata.httpStatusCode,
+          requestId: error.$metadata.requestId
+        };
+      }
+      
+      return res.status(500).json(errorDetails);
     }
   } else if (req.file) {
     // Handle single file upload
@@ -201,10 +231,22 @@ const uploadToR2Middleware = async (req, res, next) => {
       console.log(`Single file uploaded successfully: ${publicUrl}`);
     } catch (error) {
       console.error('Error during R2 upload:', error);
-      return res.status(500).json({ 
-        message: 'Error uploading file to Cloudflare R2 storage', 
-        error: error.message 
-      });
+      // Provide more detailed error information
+      const errorMessage = error.message || 'Unknown error during R2 upload';
+      const errorDetails = {
+        message: 'Error uploading file to Cloudflare R2 storage',
+        error: errorMessage
+      };
+      
+      // Add AWS-specific error details if available
+      if (error.$metadata) {
+        errorDetails.details = {
+          httpStatusCode: error.$metadata.httpStatusCode,
+          requestId: error.$metadata.requestId
+        };
+      }
+      
+      return res.status(500).json(errorDetails);
     }
   }
   next();
