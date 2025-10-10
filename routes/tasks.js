@@ -3,6 +3,18 @@ const { body } = require('express-validator');
 const validator = require('validator');
 const { auth } = require('../middleware/auth');
 const { taskAttachmentUpload, compressUploadedFiles } = require('../middleware/upload'); // Add upload middleware
+
+// Check if we should use Cloudflare R2
+const USE_CLOUDFLARE_R2 = process.env.USE_CLOUDFLARE_R2 === 'true';
+let uploadMiddleware = [auth, taskAttachmentUpload.array('attachments', 20), compressUploadedFiles];
+
+// If using Cloudflare R2, add the R2 upload middleware
+if (USE_CLOUDFLARE_R2) {
+  const { uploadToR2Middleware } = require('../middleware/cloudflareR2Upload');
+  // Replace the compressUploadedFiles middleware with uploadToR2Middleware
+  uploadMiddleware = [auth, taskAttachmentUpload.array('attachments', 20), uploadToR2Middleware];
+}
+
 const {
   getTasks,
   getTask,
@@ -34,12 +46,7 @@ router.get('/:id', auth, getTask);
 // @route   POST /api/tasks
 // @desc    Create a new task
 // @access  Private
-router.post('/', [
-  auth,
-  taskAttachmentUpload.array('attachments', 20), // Increased from 10 to 20 attachment files
-  compressUploadedFiles // Add compression middleware
-  // Remove validation middleware that conflicts with FormData
-], (req, res, next) => {
+router.post('/', uploadMiddleware, (req, res, next) => {
   // Add error handling for multer errors
   if (req.files && req.files.length > 20) {
     return res.status(400).json({ message: 'Too many files uploaded. Maximum is 20 attachments per task.' });
@@ -50,12 +57,7 @@ router.post('/', [
 // @route   PUT /api/tasks/:id
 // @desc    Update a task
 // @access  Private
-router.put('/:id', [
-  auth,
-  taskAttachmentUpload.array('attachments', 30), // Increased from 10 to 30 attachment files
-  compressUploadedFiles // Add compression middleware
-  // Remove validation middleware that conflicts with FormData
-], (req, res, next) => {
+router.put('/:id', uploadMiddleware, (req, res, next) => {
   // Add error handling for multer errors
   if (req.files && req.files.length > 30) {
     return res.status(400).json({ message: 'Too many files uploaded. Maximum is 30 attachments per task.' });

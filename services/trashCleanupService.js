@@ -2,8 +2,10 @@
 const cron = require('node-cron');
 const { Task } = require('../models');
 const { Op } = require('sequelize');
-const fs = require('fs');
-const path = require('path');
+const { deleteFromR2 } = require('../middleware/cloudflareR2Upload'); // Import R2 delete function
+
+// Check if we should use Cloudflare R2
+const USE_CLOUDFLARE_R2 = process.env.USE_CLOUDFLARE_R2 === 'true';
 
 // Function to permanently delete trashed tasks older than 30 days
 const deleteOldTrashedTasks = async () => {
@@ -31,22 +33,29 @@ const deleteOldTrashedTasks = async () => {
       try {
         // Delete associated files from the file system
         if (task.attachments && Array.isArray(task.attachments)) {
-          const uploadsDir = process.env.UPLOADS_DIR || path.join(__dirname, '..', 'persistent_uploads');
-          
           for (const attachment of task.attachments) {
-            if (attachment.url && attachment.url.startsWith('/uploads/')) {
+            if (attachment.url) {
               try {
-                // Extract filename from URL - this is the fix
-                // The URL is like "/uploads/task-attachment-123456789.pdf"
-                // We need to extract just the filename part
-                const filename = path.basename(attachment.url);
-                const filePath = path.join(uploadsDir, filename);
-                
-                if (fs.existsSync(filePath)) {
-                  fs.unlinkSync(filePath);
-                  console.log(`Deleted old attachment file: ${filePath}`);
-                } else {
-                  console.log(`Old attachment file not found: ${filePath}`);
+                if (USE_CLOUDFLARE_R2 && attachment.url.includes('r2.cloudflarestorage.com')) {
+                  // Delete from Cloudflare R2
+                  const urlParts = attachment.url.split('/');
+                  const filename = urlParts[urlParts.length - 1];
+                  await deleteFromR2(filename);
+                } else if (attachment.url.startsWith('/uploads/')) {
+                  // Delete from local storage
+                  const fs = require('fs');
+                  const path = require('path');
+                  
+                  const uploadsDir = process.env.UPLOADS_DIR || path.join(__dirname, '..', 'persistent_uploads');
+                  const filename = path.basename(attachment.url);
+                  const filePath = path.join(uploadsDir, filename);
+                  
+                  if (fs.existsSync(filePath)) {
+                    fs.unlinkSync(filePath);
+                    console.log(`Deleted old attachment file: ${filePath}`);
+                  } else {
+                    console.log(`Old attachment file not found: ${filePath}`);
+                  }
                 }
               } catch (error) {
                 console.error('Error deleting old attachment file:', error);

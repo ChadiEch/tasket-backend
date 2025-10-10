@@ -335,9 +335,31 @@ Authorization: Bearer <your-jwt-token>
 - Departments can have manager employees
 - Tasks can have multiple comments from employees
 
-## 📁 File Uploads and Persistence
+## 📁 File Uploads
 
-Uploaded files are stored in the `persistent_uploads` directory to ensure they persist across server restarts and deployments.
+The application supports file uploads for tasks and employee photos. Files are stored in the `persistent_uploads` directory by default.
+
+### Local Storage (Default)
+
+Files are stored locally in the `persistent_uploads` directory. When deploying to platforms like Railway, volumes must be configured to persist this directory.
+
+### Cloudflare R2 Storage (Alternative)
+
+As an alternative to local storage, the application supports Cloudflare R2, which provides:
+- 10GB free storage tier
+- Zero egress fees
+- Global CDN for fast file delivery
+
+To use Cloudflare R2, set the following environment variables:
+```env
+USE_CLOUDFLARE_R2=true
+R2_ACCOUNT_ID=your-cloudflare-account-id
+R2_ACCESS_KEY_ID=your-r2-access-key-id
+R2_SECRET_ACCESS_KEY=your-r2-secret-access-key
+R2_BUCKET_NAME=your-bucket-name
+```
+
+See [CLOUDFLARE_R2_INTEGRATION.md](file:///c%3A/Users/user/Downloads/uploads%20%282%29/tasket-backend/CLOUDFLARE_R2_INTEGRATION.md) for detailed setup instructions.
 
 ### Configuration
 

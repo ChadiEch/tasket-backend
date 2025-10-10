@@ -1,6 +1,10 @@
 const { Task, Employee, Department, TaskComment } = require('../models');
 const { Op } = require('sequelize');
 const { createNotification } = require('./notificationController');
+const { deleteFromR2 } = require('../middleware/cloudflareR2Upload'); // Import R2 delete function
+
+// Check if we should use Cloudflare R2
+const USE_CLOUDFLARE_R2 = process.env.USE_CLOUDFLARE_R2 === 'true';
 
 // Helper function to delete old attachment files
 const deleteOldAttachment = (oldAttachmentPath) => {
@@ -207,7 +211,8 @@ const createTask = async (req, res) => {
         return {
           id: Date.now() + Math.random(), // Generate a temporary ID
           type: type,
-          url: `/uploads/${file.filename}`,
+          // Use R2 URL if enabled, otherwise use local path
+          url: USE_CLOUDFLARE_R2 ? file.r2Url : `/uploads/${file.filename}`,
           name: file.originalname
         };
       });
@@ -442,7 +447,8 @@ const updateTask = async (req, res) => {
         return {
           id: Date.now() + Math.random(), // Generate a temporary ID
           type: type,
-          url: `/uploads/${file.filename}`,
+          // Use R2 URL if enabled, otherwise use local path
+          url: USE_CLOUDFLARE_R2 ? file.r2Url : `/uploads/${file.filename}`,
           name: file.originalname
         };
       });
@@ -674,28 +680,29 @@ const deleteTask = async (req, res) => {
       // Permanently delete task and its attachments
       // First, delete associated files from the file system
       if (task.attachments && Array.isArray(task.attachments)) {
-        const fs = require('fs');
-        const path = require('path');
-        
-        // Get the uploads directory
-        const uploadsDir = process.env.UPLOADS_DIR || path.join(__dirname, '..', 'persistent_uploads');
-        
-        // Delete each attachment file
         for (const attachment of task.attachments) {
-          if (attachment.url && attachment.url.startsWith('/uploads/')) {
+          if (attachment.url) {
             try {
-              // Extract filename from URL - this is the fix
-              // The URL is like "/uploads/task-attachment-123456789.pdf"
-              // We need to extract just the filename part
-              const filename = path.basename(attachment.url);
-              const filePath = path.join(uploadsDir, filename);
-              
-              // Check if file exists and delete it
-              if (fs.existsSync(filePath)) {
-                fs.unlinkSync(filePath);
-                console.log(`Deleted attachment file: ${filePath}`);
-              } else {
-                console.log(`Attachment file not found: ${filePath}`);
+              if (USE_CLOUDFLARE_R2 && attachment.url.includes('r2.cloudflarestorage.com')) {
+                // Delete from Cloudflare R2
+                const urlParts = attachment.url.split('/');
+                const filename = urlParts[urlParts.length - 1];
+                await deleteFromR2(filename);
+              } else if (attachment.url.startsWith('/uploads/')) {
+                // Delete from local storage
+                const fs = require('fs');
+                const path = require('path');
+                
+                // Extract filename from URL
+                const filename = path.basename(attachment.url);
+                const uploadsDir = process.env.UPLOADS_DIR || path.join(__dirname, '..', 'persistent_uploads');
+                const filePath = path.join(uploadsDir, filename);
+                
+                // Check if file exists and delete it
+                if (fs.existsSync(filePath)) {
+                  fs.unlinkSync(filePath);
+                  console.log(`Deleted attachment file: ${filePath}`);
+                }
               }
             } catch (error) {
               console.error('Error deleting attachment file:', error);
@@ -788,28 +795,29 @@ const permanentlyDeleteTask = async (req, res) => {
 
     // Delete associated files from the file system
     if (task.attachments && Array.isArray(task.attachments)) {
-      const fs = require('fs');
-      const path = require('path');
-      
-      // Get the uploads directory
-      const uploadsDir = process.env.UPLOADS_DIR || path.join(__dirname, '..', 'persistent_uploads');
-      
-      // Delete each attachment file
       for (const attachment of task.attachments) {
-        if (attachment.url && attachment.url.startsWith('/uploads/')) {
+        if (attachment.url) {
           try {
-            // Extract filename from URL - this is the fix
-            // The URL is like "/uploads/task-attachment-123456789.pdf"
-            // We need to extract just the filename part
-            const filename = path.basename(attachment.url);
-            const filePath = path.join(uploadsDir, filename);
-            
-            // Check if file exists and delete it
-            if (fs.existsSync(filePath)) {
-              fs.unlinkSync(filePath);
-              console.log(`Deleted attachment file: ${filePath}`);
-            } else {
-              console.log(`Attachment file not found: ${filePath}`);
+            if (USE_CLOUDFLARE_R2 && attachment.url.includes('r2.cloudflarestorage.com')) {
+              // Delete from Cloudflare R2
+              const urlParts = attachment.url.split('/');
+              const filename = urlParts[urlParts.length - 1];
+              await deleteFromR2(filename);
+            } else if (attachment.url.startsWith('/uploads/')) {
+              // Delete from local storage
+              const fs = require('fs');
+              const path = require('path');
+              
+              // Extract filename from URL
+              const filename = path.basename(attachment.url);
+              const uploadsDir = process.env.UPLOADS_DIR || path.join(__dirname, '..', 'persistent_uploads');
+              const filePath = path.join(uploadsDir, filename);
+              
+              // Check if file exists and delete it
+              if (fs.existsSync(filePath)) {
+                fs.unlinkSync(filePath);
+                console.log(`Deleted attachment file: ${filePath}`);
+              }
             }
           } catch (error) {
             console.error('Error deleting attachment file:', error);

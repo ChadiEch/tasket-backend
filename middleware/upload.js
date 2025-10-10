@@ -3,25 +3,35 @@ const path = require('path');
 const fs = require('fs');
 const sharp = require('sharp'); // Added for image compression
 
+// Check if we should use Cloudflare R2 instead of local storage
+const USE_CLOUDFLARE_R2 = process.env.USE_CLOUDFLARE_R2 === 'true';
+
 // Use a more persistent directory for uploads
 // In production, you might want to use an environment variable for this
 const uploadsDir = process.env.UPLOADS_DIR || path.join(__dirname, '..', 'persistent_uploads');
 
-// Ensure uploads directory exists
-if (!fs.existsSync(uploadsDir)) {
+// Ensure uploads directory exists (only for local storage)
+if (!USE_CLOUDFLARE_R2 && !fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
 // Configure multer for task attachment uploads
-const taskAttachmentStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadsDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'task-attachment-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
+let taskAttachmentStorage;
+if (USE_CLOUDFLARE_R2) {
+  // Use in-memory storage when using Cloudflare R2
+  taskAttachmentStorage = multer.memoryStorage();
+} else {
+  // Use disk storage for local storage
+  taskAttachmentStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+      cb(null, uploadsDir);
+    },
+    filename: (req, file, cb) => {
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      cb(null, 'task-attachment-' + uniqueSuffix + path.extname(file.originalname));
+    }
+  });
+}
 
 // Function to compress image files
 const compressImage = async (filePath, options = {}) => {
@@ -116,6 +126,11 @@ const taskAttachmentFileFilter = (req, file, cb) => {
 
 // Custom middleware to compress images after upload
 const compressUploadedFiles = async (req, res, next) => {
+  // Skip compression if using Cloudflare R2
+  if (USE_CLOUDFLARE_R2) {
+    return next();
+  }
+  
   if (req.files && req.files.length > 0) {
     try {
       // Process each uploaded file

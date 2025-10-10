@@ -50,27 +50,33 @@ require('./services/trashCleanupService');
 // Make WebSocket service available to routes
 app.set('websocketService', websocketService);
 
-// IMPORTANT: Serve uploaded files BEFORE other middleware to avoid conflicts
-const uploadsDir = process.env.UPLOADS_DIR || path.join(__dirname, 'persistent_uploads');
+// Check if we should use Cloudflare R2
+const USE_CLOUDFLARE_R2 = process.env.USE_CLOUDFLARE_R2 === 'true';
 
-// Custom CORS middleware for uploads - placed at the very beginning
-app.use('/uploads', (req, res, next) => {
-  console.log('Uploads request:', req.method, req.url, req.headers.origin);
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.header('Access-Control-Max-Age', '86400'); // 24 hours
-  res.header('Cross-Origin-Resource-Policy', 'cross-origin');
-  res.header('Cross-Origin-Embedder-Policy', 'unsafe-none');
-  
-  // Handle preflight requests
-  if (req.method === 'OPTIONS') {
-    console.log('Handling OPTIONS request for uploads');
-    return res.status(200).end();
-  }
-  
-  next();
-}, express.static(uploadsDir));
+// IMPORTANT: Serve uploaded files BEFORE other middleware to avoid conflicts
+// Only serve local files if not using Cloudflare R2
+if (!USE_CLOUDFLARE_R2) {
+  const uploadsDir = process.env.UPLOADS_DIR || path.join(__dirname, 'persistent_uploads');
+
+  // Custom CORS middleware for uploads - placed at the very beginning
+  app.use('/uploads', (req, res, next) => {
+    console.log('Uploads request:', req.method, req.url, req.headers.origin);
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.header('Access-Control-Max-Age', '86400'); // 24 hours
+    res.header('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.header('Cross-Origin-Embedder-Policy', 'unsafe-none');
+    
+    // Handle preflight requests
+    if (req.method === 'OPTIONS') {
+      console.log('Handling OPTIONS request for uploads');
+      return res.status(200).end();
+    }
+    
+    next();
+  }, express.static(uploadsDir));
+}
 
 // Security middleware
 app.use(helmet());
