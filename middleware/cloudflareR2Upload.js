@@ -10,39 +10,50 @@ const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY;
 const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME;
 const R2_ENDPOINT = R2_ACCOUNT_ID ? `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com` : null;
 
+// Check if we should use Cloudflare R2
+const USE_CLOUDFLARE_R2 = process.env.USE_CLOUDFLARE_R2 === 'true';
+
 console.log('Cloudflare R2 Configuration:');
-console.log('  USE_CLOUDFLARE_R2:', process.env.USE_CLOUDFLARE_R2);
+console.log('  USE_CLOUDFLARE_R2:', USE_CLOUDFLARE_R2);
 console.log('  R2_ACCOUNT_ID:', R2_ACCOUNT_ID);
 console.log('  R2_ACCESS_KEY_ID:', R2_ACCESS_KEY_ID ? 'SET' : 'NOT SET');
 console.log('  R2_SECRET_ACCESS_KEY:', R2_SECRET_ACCESS_KEY ? 'SET' : 'NOT SET');
 console.log('  R2_BUCKET_NAME:', R2_BUCKET_NAME);
 console.log('  R2_ENDPOINT:', R2_ENDPOINT);
 
-// Check if all required variables are set
-if (process.env.USE_CLOUDFLARE_R2 === 'true') {
+// Check if all required variables are set when R2 is enabled
+let isR2ProperlyConfigured = false;
+if (USE_CLOUDFLARE_R2) {
   if (!R2_ACCOUNT_ID || !R2_ACCESS_KEY_ID || !R2_SECRET_ACCESS_KEY || !R2_BUCKET_NAME) {
     console.error('❌ Cloudflare R2 is enabled but required environment variables are missing:');
     if (!R2_ACCOUNT_ID) console.error('   - R2_ACCOUNT_ID is missing');
     if (!R2_ACCESS_KEY_ID) console.error('   - R2_ACCESS_KEY_ID is missing');
     if (!R2_SECRET_ACCESS_KEY) console.error('   - R2_SECRET_ACCESS_KEY is missing');
     if (!R2_BUCKET_NAME) console.error('   - R2_BUCKET_NAME is missing');
+    console.error('⚠️  Falling back to local storage');
   } else {
     console.log('✅ All Cloudflare R2 environment variables are properly set');
+    isR2ProperlyConfigured = true;
   }
 }
 
 // Initialize S3 client for Cloudflare R2
 let s3Client;
-if (R2_ACCOUNT_ID && R2_ACCESS_KEY_ID && R2_SECRET_ACCESS_KEY) {
-  s3Client = new S3Client({
-    region: 'auto',
-    endpoint: R2_ENDPOINT,
-    credentials: {
-      accessKeyId: R2_ACCESS_KEY_ID,
-      secretAccessKey: R2_SECRET_ACCESS_KEY,
-    },
-  });
-  console.log('✅ Cloudflare R2 client initialized successfully');
+if (isR2ProperlyConfigured) {
+  try {
+    s3Client = new S3Client({
+      region: 'auto',
+      endpoint: R2_ENDPOINT,
+      credentials: {
+        accessKeyId: R2_ACCESS_KEY_ID,
+        secretAccessKey: R2_SECRET_ACCESS_KEY,
+      },
+    });
+    console.log('✅ Cloudflare R2 client initialized successfully');
+  } catch (error) {
+    console.error('❌ Failed to initialize Cloudflare R2 client:', error.message);
+    isR2ProperlyConfigured = false;
+  }
 } else {
   console.log('⚠️  Cloudflare R2 client not initialized due to missing configuration');
 }
@@ -83,7 +94,7 @@ const taskAttachmentFileFilter = (req, file, cb) => {
 // Function to upload file to Cloudflare R2
 const uploadToR2 = async (fileBuffer, filename, mimetype) => {
   // Check if R2 is properly configured
-  if (!s3Client) {
+  if (!isR2ProperlyConfigured) {
     throw new Error('Cloudflare R2 is not properly configured. Please check environment variables.');
   }
   
@@ -114,7 +125,7 @@ const uploadToR2 = async (fileBuffer, filename, mimetype) => {
 // Function to delete file from Cloudflare R2
 const deleteFromR2 = async (filename) => {
   // Check if R2 is properly configured
-  if (!s3Client) {
+  if (!isR2ProperlyConfigured) {
     console.warn('Cloudflare R2 is not properly configured. Skipping file deletion.');
     return;
   }
@@ -142,10 +153,13 @@ const deleteFromR2 = async (filename) => {
 
 // Custom middleware to handle R2 uploads
 const uploadToR2Middleware = async (req, res, next) => {
-  // If R2 is not properly configured, skip the middleware
-  if (!s3Client || !R2_BUCKET_NAME) {
-    console.warn('Cloudflare R2 is not properly configured. Skipping R2 upload middleware.');
-    return next();
+  // If R2 is not properly configured, return an error instead of falling back
+  if (!isR2ProperlyConfigured) {
+    console.error('Cloudflare R2 is enabled but not properly configured');
+    return res.status(500).json({ 
+      message: 'Cloudflare R2 storage is not properly configured. Please contact the administrator.',
+      error: 'Cloudflare R2 configuration error'
+    });
   }
   
   if (req.files && req.files.length > 0) {
@@ -168,7 +182,10 @@ const uploadToR2Middleware = async (req, res, next) => {
       }
     } catch (error) {
       console.error('Error during R2 upload:', error);
-      return res.status(500).json({ message: 'Error uploading files to storage', error: error.message });
+      return res.status(500).json({ 
+        message: 'Error uploading files to Cloudflare R2 storage', 
+        error: error.message 
+      });
     }
   } else if (req.file) {
     // Handle single file upload
@@ -184,7 +201,10 @@ const uploadToR2Middleware = async (req, res, next) => {
       console.log(`Single file uploaded successfully: ${publicUrl}`);
     } catch (error) {
       console.error('Error during R2 upload:', error);
-      return res.status(500).json({ message: 'Error uploading file to storage', error: error.message });
+      return res.status(500).json({ 
+        message: 'Error uploading file to Cloudflare R2 storage', 
+        error: error.message 
+      });
     }
   }
   next();

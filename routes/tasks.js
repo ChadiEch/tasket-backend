@@ -8,6 +8,9 @@ const { taskAttachmentUpload, compressUploadedFiles } = require('../middleware/u
 const USE_CLOUDFLARE_R2 = process.env.USE_CLOUDFLARE_R2 === 'true';
 let uploadMiddleware = [auth, taskAttachmentUpload.array('attachments', 20), compressUploadedFiles];
 
+console.log('Task routes configuration:');
+console.log('  USE_CLOUDFLARE_R2:', USE_CLOUDFLARE_R2);
+
 // If using Cloudflare R2, add the R2 upload middleware
 if (USE_CLOUDFLARE_R2) {
   try {
@@ -18,7 +21,7 @@ if (USE_CLOUDFLARE_R2) {
   } catch (error) {
     console.error('❌ Failed to load Cloudflare R2 middleware:', error);
     console.log('⚠️  Falling back to local storage');
-    // Fall back to local storage if R2 middleware fails to load
+    // Keep the original middleware if R2 middleware fails to load
   }
 }
 
