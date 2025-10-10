@@ -15,7 +15,16 @@ This guide explains how to set up Cloudflare R2 storage for your Tasket applicat
 4. Enter a bucket name (e.g., "tasket-uploads")
 5. Click "Create bucket"
 
-## Step 2: Create R2 API Token
+## Step 2: Enable Public Access for Your Bucket
+
+1. In the Cloudflare dashboard, go to the R2 section
+2. Select your bucket
+3. Click on "Settings"
+4. Under "Public Development URL", click "Enable"
+5. Type "allow" to confirm and click "Allow"
+6. Note the Public Bucket URL (it will look like `https://pub-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.r2.dev`)
+
+## Step 3: Create R2 API Token
 
 1. In the Cloudflare dashboard, go to "My Profile" > "API Tokens"
 2. Click "Create Token"
@@ -28,13 +37,13 @@ This guide explains how to set up Cloudflare R2 storage for your Tasket applicat
 8. Click "Create Token"
 9. Copy the generated API token (you'll need both the key and secret)
 
-## Step 3: Get Your Account ID
+## Step 4: Get Your Account ID
 
 1. In the Cloudflare dashboard, go to the R2 section
 2. Your Account ID is displayed at the top of the page
 3. Copy this ID for later use
 
-## Step 4: Configure Environment Variables in Railway
+## Step 5: Configure Environment Variables in Railway
 
 1. Go to your Railway project dashboard
 2. Select the "tasket-backend" service
@@ -46,9 +55,10 @@ This guide explains how to set up Cloudflare R2 storage for your Tasket applicat
    R2_ACCESS_KEY_ID=your_actual_access_key_id_here
    R2_SECRET_ACCESS_KEY=your_actual_secret_access_key_here
    R2_BUCKET_NAME=your_bucket_name_here
+   R2_PUBLIC_BUCKET_KEY=pub-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
    ```
 
-## Step 5: Redeploy Application
+## Step 6: Redeploy Application
 
 1. After setting the environment variables, trigger a new deployment in Railway
 2. Railway will automatically redeploy your application with the new configuration

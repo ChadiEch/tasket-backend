@@ -29,6 +29,7 @@ This error occurs when there are invalid characters (like newlines, tabs, or non
    - R2_ACCESS_KEY_ID: Usually 20 characters
    - R2_SECRET_ACCESS_KEY: Usually 40 characters
    - R2_BUCKET_NAME: Your bucket name without any special formatting
+   - R2_PUBLIC_BUCKET_KEY: Should match the public key from your bucket's public URL
 
 ### Prevention Tips
 - Always copy credentials directly from the Cloudflare dashboard
@@ -59,11 +60,12 @@ This error occurs when there are invalid characters (like newlines, tabs, or non
 ### 1. Credentials Not Set
 **Error**: "Required environment variables are missing"
 **Solution**: 
-- Verify all four required variables are set in Railway:
+- Verify all required variables are set in Railway:
   - R2_ACCOUNT_ID
   - R2_ACCESS_KEY_ID
   - R2_SECRET_ACCESS_KEY
   - R2_BUCKET_NAME
+  - R2_PUBLIC_BUCKET_KEY
 
 ### 2. Invalid Credentials
 **Error**: "InvalidAccessKeyId" or "SignatureDoesNotMatch"
@@ -84,6 +86,13 @@ This error occurs when there are invalid characters (like newlines, tabs, or non
 - Check that your API token has the correct permissions
 - Ensure the token is associated with the correct Cloudflare account
 - Verify the token hasn't expired
+
+### 5. Incorrect Public URLs
+**Issue**: Files upload successfully but can't be accessed via generated URLs
+**Solution**:
+- Verify that R2_PUBLIC_BUCKET_KEY is set correctly
+- Ensure public access is enabled for your R2 bucket
+- Check that the public bucket key matches the one in your bucket's public URL
 
 ## Debugging in Railway
 

@@ -19,6 +19,8 @@
     "diagnose:railway": "node diagnose-railway-r2.js",
     "test:r2-connection": "node test-r2-connection.js",
     "test:railway-r2": "node railway-r2-test.js",
+    "inspect:credentials": "node railway-credential-inspector.js",
+    "test:r2-url": "node test-r2-url-generation.js",
     "build": "echo 'No build step required for backend API'",
     "build:full": "npm install && npm run seed:prod",
     "test": "jest",

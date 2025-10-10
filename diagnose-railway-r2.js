@@ -9,7 +9,8 @@ const requiredVars = [
   'R2_ACCOUNT_ID',
   'R2_ACCESS_KEY_ID',
   'R2_SECRET_ACCESS_KEY',
-  'R2_BUCKET_NAME'
+  'R2_BUCKET_NAME',
+  'R2_PUBLIC_BUCKET_KEY'
 ];
 
 console.log('Railway Environment Variables Check:');
@@ -69,6 +70,7 @@ if (process.env.USE_CLOUDFLARE_R2 === 'true') {
     hasInvalidChars |= checkForInvalidChars(process.env.R2_ACCESS_KEY_ID, 'R2_ACCESS_KEY_ID');
     hasInvalidChars |= checkForInvalidChars(process.env.R2_SECRET_ACCESS_KEY, 'R2_SECRET_ACCESS_KEY');
     hasInvalidChars |= checkForInvalidChars(process.env.R2_BUCKET_NAME, 'R2_BUCKET_NAME');
+    hasInvalidChars |= checkForInvalidChars(process.env.R2_PUBLIC_BUCKET_KEY, 'R2_PUBLIC_BUCKET_KEY');
     
     if (hasInvalidChars) {
       console.log('\n❌ Cloudflare R2 credentials contain invalid characters');
@@ -102,6 +104,8 @@ if (process.env.USE_CLOUDFLARE_R2 === 'true') {
     }
   } else {
     console.log('❌ Some required environment variables are MISSING');
+    const missingVars = requiredVars.filter(varName => process.env[varName] === undefined);
+    console.log('Missing variables:', missingVars.join(', '));
   }
 } else {
   console.log('ℹ️  Cloudflare R2 is DISABLED in Railway deployment');

@@ -15,6 +15,7 @@ Cloudflare R2 is an S3-compatible object storage service that provides:
 1. A Cloudflare account
 2. A Cloudflare R2 bucket
 3. R2 API credentials (Access Key ID and Secret Access Key)
+4. Public access enabled for your R2 bucket
 
 ## Setup Instructions
 
@@ -25,14 +26,23 @@ Cloudflare R2 is an S3-compatible object storage service that provides:
 3. Create a new bucket (note the bucket name)
 4. Make the bucket public or configure appropriate access permissions
 
-### 2. Generate API Credentials
+### 2. Enable Public Access for Your Bucket
+
+1. In the Cloudflare dashboard, go to the R2 section
+2. Select your bucket
+3. Click on "Settings"
+4. Under "Public Development URL", click "Enable"
+5. Type "allow" to confirm and click "Allow"
+6. Note the Public Bucket URL (it will look like `https://pub-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.r2.dev`)
+
+### 3. Generate API Credentials
 
 1. In the Cloudflare dashboard, go to R2 Storage
 2. Click on "Manage R2 API Tokens"
 3. Create a new API token with appropriate permissions
 4. Note the Access Key ID and Secret Access Key
 
-### 3. Configure Environment Variables
+### 4. Configure Environment Variables
 
 Set the following environment variables in your deployment environment:
 
@@ -42,13 +52,16 @@ R2_ACCOUNT_ID=your-cloudflare-account-id
 R2_ACCESS_KEY_ID=your-r2-access-key-id
 R2_SECRET_ACCESS_KEY=your-r2-secret-access-key
 R2_BUCKET_NAME=your-bucket-name
+R2_PUBLIC_BUCKET_KEY=pub-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
-### 4. Deploy the Application
+The `R2_PUBLIC_BUCKET_KEY` is the key part of your bucket's public URL. For example, if your public URL is `https://pub-65a8f0a1ed924205af132a2ffe78debd.r2.dev`, then your `R2_PUBLIC_BUCKET_KEY` is `pub-65a8f0a1ed924205af132a2ffe78debd`.
+
+### 5. Deploy the Application
 
 When `USE_CLOUDFLARE_R2` is set to `true`, the application will:
 - Store uploaded files in Cloudflare R2 instead of local storage
-- Serve file URLs directly from Cloudflare's CDN
+- Serve file URLs directly from Cloudflare's CDN using the public development URL
 - Automatically delete files from R2 when tasks are permanently deleted
 
 ## Benefits
@@ -80,6 +93,7 @@ If you're migrating from local storage to Cloudflare R2:
 1. **Authentication Errors**: Verify your R2 credentials are correct
 2. **Permission Errors**: Ensure your API token has the necessary permissions
 3. **Upload Failures**: Check file size limits and supported file types
+4. **File Access Issues**: Ensure public access is enabled for your bucket and the R2_PUBLIC_BUCKET_KEY is set correctly
 
 ### Logs
 
@@ -98,3 +112,4 @@ Check application logs for detailed error messages related to R2 operations.
 2. Implement proper error handling for upload failures
 3. Use appropriate file naming conventions
 4. Regularly audit your R2 bucket for unused files
+5. Enable public access only if needed for direct file access

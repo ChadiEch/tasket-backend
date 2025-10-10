@@ -8,6 +8,7 @@ const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID;
 const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID;
 const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY;
 const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME;
+const R2_PUBLIC_BUCKET_KEY = process.env.R2_PUBLIC_BUCKET_KEY || 'pub-65a8f0a1ed924205af132a2ffe78debd'; // Default to your working key
 const R2_ENDPOINT = R2_ACCOUNT_ID ? `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com` : null;
 
 // Check if we should use Cloudflare R2
@@ -19,6 +20,7 @@ console.log('  R2_ACCOUNT_ID:', R2_ACCOUNT_ID ? 'SET' : 'NOT SET');
 console.log('  R2_ACCESS_KEY_ID:', R2_ACCESS_KEY_ID ? 'SET' : 'NOT SET');
 console.log('  R2_SECRET_ACCESS_KEY:', R2_SECRET_ACCESS_KEY ? 'SET' : 'NOT SET');
 console.log('  R2_BUCKET_NAME:', R2_BUCKET_NAME);
+console.log('  R2_PUBLIC_BUCKET_KEY:', R2_PUBLIC_BUCKET_KEY);
 console.log('  R2_ENDPOINT:', R2_ENDPOINT);
 
 // Function to check for invalid characters in credentials
@@ -150,7 +152,8 @@ const uploadToR2 = async (fileBuffer, filename, mimetype) => {
     console.log(`Uploading file to Cloudflare R2: ${filename}`);
     const command = new PutObjectCommand(params);
     const response = await s3Client.send(command);
-    const publicUrl = `https://${R2_BUCKET_NAME?.trim()}.${R2_ACCOUNT_ID?.trim()}.r2.cloudflarestorage.com/${filename}`;
+    // Generate the correct public URL using the r2.dev format
+    const publicUrl = `https://${R2_PUBLIC_BUCKET_KEY}.r2.dev/${filename}`;
     console.log(`Successfully uploaded file to Cloudflare R2: ${publicUrl}`);
     return publicUrl;
   } catch (error) {
