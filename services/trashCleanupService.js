@@ -36,12 +36,17 @@ const deleteOldTrashedTasks = async () => {
           for (const attachment of task.attachments) {
             if (attachment.url && attachment.url.startsWith('/uploads/')) {
               try {
+                // Extract filename from URL - this is the fix
+                // The URL is like "/uploads/task-attachment-123456789.pdf"
+                // We need to extract just the filename part
                 const filename = path.basename(attachment.url);
                 const filePath = path.join(uploadsDir, filename);
                 
                 if (fs.existsSync(filePath)) {
                   fs.unlinkSync(filePath);
                   console.log(`Deleted old attachment file: ${filePath}`);
+                } else {
+                  console.log(`Old attachment file not found: ${filePath}`);
                 }
               } catch (error) {
                 console.error('Error deleting old attachment file:', error);

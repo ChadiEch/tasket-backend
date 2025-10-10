@@ -684,7 +684,9 @@ const deleteTask = async (req, res) => {
         for (const attachment of task.attachments) {
           if (attachment.url && attachment.url.startsWith('/uploads/')) {
             try {
-              // Extract filename from URL
+              // Extract filename from URL - this is the fix
+              // The URL is like "/uploads/task-attachment-123456789.pdf"
+              // We need to extract just the filename part
               const filename = path.basename(attachment.url);
               const filePath = path.join(uploadsDir, filename);
               
@@ -692,6 +694,8 @@ const deleteTask = async (req, res) => {
               if (fs.existsSync(filePath)) {
                 fs.unlinkSync(filePath);
                 console.log(`Deleted attachment file: ${filePath}`);
+              } else {
+                console.log(`Attachment file not found: ${filePath}`);
               }
             } catch (error) {
               console.error('Error deleting attachment file:', error);
@@ -794,7 +798,9 @@ const permanentlyDeleteTask = async (req, res) => {
       for (const attachment of task.attachments) {
         if (attachment.url && attachment.url.startsWith('/uploads/')) {
           try {
-            // Extract filename from URL
+            // Extract filename from URL - this is the fix
+            // The URL is like "/uploads/task-attachment-123456789.pdf"
+            // We need to extract just the filename part
             const filename = path.basename(attachment.url);
             const filePath = path.join(uploadsDir, filename);
             
@@ -802,6 +808,8 @@ const permanentlyDeleteTask = async (req, res) => {
             if (fs.existsSync(filePath)) {
               fs.unlinkSync(filePath);
               console.log(`Deleted attachment file: ${filePath}`);
+            } else {
+              console.log(`Attachment file not found: ${filePath}`);
             }
           } catch (error) {
             console.error('Error deleting attachment file:', error);
