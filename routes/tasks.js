@@ -10,9 +10,16 @@ let uploadMiddleware = [auth, taskAttachmentUpload.array('attachments', 20), com
 
 // If using Cloudflare R2, add the R2 upload middleware
 if (USE_CLOUDFLARE_R2) {
-  const { uploadToR2Middleware } = require('../middleware/cloudflareR2Upload');
-  // Replace the compressUploadedFiles middleware with uploadToR2Middleware
-  uploadMiddleware = [auth, taskAttachmentUpload.array('attachments', 20), uploadToR2Middleware];
+  try {
+    const { uploadToR2Middleware } = require('../middleware/cloudflareR2Upload');
+    // Replace the compressUploadedFiles middleware with uploadToR2Middleware
+    uploadMiddleware = [auth, taskAttachmentUpload.array('attachments', 20), uploadToR2Middleware];
+    console.log('✅ Cloudflare R2 middleware loaded successfully');
+  } catch (error) {
+    console.error('❌ Failed to load Cloudflare R2 middleware:', error);
+    console.log('⚠️  Falling back to local storage');
+    // Fall back to local storage if R2 middleware fails to load
+  }
 }
 
 const {

@@ -8,17 +8,44 @@ const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID;
 const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID;
 const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY;
 const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME;
-const R2_ENDPOINT = `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`;
+const R2_ENDPOINT = R2_ACCOUNT_ID ? `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com` : null;
+
+console.log('Cloudflare R2 Configuration:');
+console.log('  USE_CLOUDFLARE_R2:', process.env.USE_CLOUDFLARE_R2);
+console.log('  R2_ACCOUNT_ID:', R2_ACCOUNT_ID);
+console.log('  R2_ACCESS_KEY_ID:', R2_ACCESS_KEY_ID ? 'SET' : 'NOT SET');
+console.log('  R2_SECRET_ACCESS_KEY:', R2_SECRET_ACCESS_KEY ? 'SET' : 'NOT SET');
+console.log('  R2_BUCKET_NAME:', R2_BUCKET_NAME);
+console.log('  R2_ENDPOINT:', R2_ENDPOINT);
+
+// Check if all required variables are set
+if (process.env.USE_CLOUDFLARE_R2 === 'true') {
+  if (!R2_ACCOUNT_ID || !R2_ACCESS_KEY_ID || !R2_SECRET_ACCESS_KEY || !R2_BUCKET_NAME) {
+    console.error('❌ Cloudflare R2 is enabled but required environment variables are missing:');
+    if (!R2_ACCOUNT_ID) console.error('   - R2_ACCOUNT_ID is missing');
+    if (!R2_ACCESS_KEY_ID) console.error('   - R2_ACCESS_KEY_ID is missing');
+    if (!R2_SECRET_ACCESS_KEY) console.error('   - R2_SECRET_ACCESS_KEY is missing');
+    if (!R2_BUCKET_NAME) console.error('   - R2_BUCKET_NAME is missing');
+  } else {
+    console.log('✅ All Cloudflare R2 environment variables are properly set');
+  }
+}
 
 // Initialize S3 client for Cloudflare R2
-const s3Client = new S3Client({
-  region: 'auto',
-  endpoint: R2_ENDPOINT,
-  credentials: {
-    accessKeyId: R2_ACCESS_KEY_ID,
-    secretAccessKey: R2_SECRET_ACCESS_KEY,
-  },
-});
+let s3Client;
+if (R2_ACCOUNT_ID && R2_ACCESS_KEY_ID && R2_SECRET_ACCESS_KEY) {
+  s3Client = new S3Client({
+    region: 'auto',
+    endpoint: R2_ENDPOINT,
+    credentials: {
+      accessKeyId: R2_ACCESS_KEY_ID,
+      secretAccessKey: R2_SECRET_ACCESS_KEY,
+    },
+  });
+  console.log('✅ Cloudflare R2 client initialized successfully');
+} else {
+  console.log('⚠️  Cloudflare R2 client not initialized due to missing configuration');
+}
 
 // In-memory storage for multer (files will be uploaded to R2, not stored locally)
 const storage = multer.memoryStorage();
@@ -55,6 +82,15 @@ const taskAttachmentFileFilter = (req, file, cb) => {
 
 // Function to upload file to Cloudflare R2
 const uploadToR2 = async (fileBuffer, filename, mimetype) => {
+  // Check if R2 is properly configured
+  if (!s3Client) {
+    throw new Error('Cloudflare R2 is not properly configured. Please check environment variables.');
+  }
+  
+  if (!R2_BUCKET_NAME) {
+    throw new Error('R2_BUCKET_NAME is not set');
+  }
+
   const params = {
     Bucket: R2_BUCKET_NAME,
     Key: filename,
@@ -63,10 +99,12 @@ const uploadToR2 = async (fileBuffer, filename, mimetype) => {
   };
 
   try {
+    console.log(`Uploading file to Cloudflare R2: ${filename}`);
     const command = new PutObjectCommand(params);
     const response = await s3Client.send(command);
-    // Return the public URL for the uploaded file
-    return `https://${R2_BUCKET_NAME}.${R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${filename}`;
+    const publicUrl = `https://${R2_BUCKET_NAME}.${R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${filename}`;
+    console.log(`Successfully uploaded file to Cloudflare R2: ${publicUrl}`);
+    return publicUrl;
   } catch (error) {
     console.error('Error uploading to R2:', error);
     throw error;
@@ -75,15 +113,27 @@ const uploadToR2 = async (fileBuffer, filename, mimetype) => {
 
 // Function to delete file from Cloudflare R2
 const deleteFromR2 = async (filename) => {
+  // Check if R2 is properly configured
+  if (!s3Client) {
+    console.warn('Cloudflare R2 is not properly configured. Skipping file deletion.');
+    return;
+  }
+  
+  if (!R2_BUCKET_NAME) {
+    console.warn('R2_BUCKET_NAME is not set. Skipping file deletion.');
+    return;
+  }
+
   const params = {
     Bucket: R2_BUCKET_NAME,
     Key: filename,
   };
 
   try {
+    console.log(`Deleting file from Cloudflare R2: ${filename}`);
     const command = new DeleteObjectCommand(params);
     await s3Client.send(command);
-    console.log(`Deleted file from R2: ${filename}`);
+    console.log(`Successfully deleted file from Cloudflare R2: ${filename}`);
   } catch (error) {
     console.error('Error deleting from R2:', error);
     throw error;
@@ -92,24 +142,33 @@ const deleteFromR2 = async (filename) => {
 
 // Custom middleware to handle R2 uploads
 const uploadToR2Middleware = async (req, res, next) => {
+  // If R2 is not properly configured, skip the middleware
+  if (!s3Client || !R2_BUCKET_NAME) {
+    console.warn('Cloudflare R2 is not properly configured. Skipping R2 upload middleware.');
+    return next();
+  }
+  
   if (req.files && req.files.length > 0) {
     try {
+      console.log(`Processing ${req.files.length} files for R2 upload`);
       // Process each uploaded file
       for (const file of req.files) {
         // Generate a unique filename
         const fileExtension = path.extname(file.originalname);
         const uniqueFilename = `task-attachment-${Date.now()}-${crypto.randomBytes(4).toString('hex')}${fileExtension}`;
         
+        console.log(`Uploading file: ${file.originalname} as ${uniqueFilename}`);
         // Upload to R2
         const publicUrl = await uploadToR2(file.buffer, uniqueFilename, file.mimetype);
         
         // Add the public URL to the file object
         file.r2Url = publicUrl;
         file.filename = uniqueFilename;
+        console.log(`File uploaded successfully: ${publicUrl}`);
       }
     } catch (error) {
       console.error('Error during R2 upload:', error);
-      return res.status(500).json({ message: 'Error uploading files to storage' });
+      return res.status(500).json({ message: 'Error uploading files to storage', error: error.message });
     }
   } else if (req.file) {
     // Handle single file upload
@@ -117,13 +176,15 @@ const uploadToR2Middleware = async (req, res, next) => {
       const fileExtension = path.extname(req.file.originalname);
       const uniqueFilename = `task-attachment-${Date.now()}-${crypto.randomBytes(4).toString('hex')}${fileExtension}`;
       
+      console.log(`Uploading single file: ${req.file.originalname} as ${uniqueFilename}`);
       const publicUrl = await uploadToR2(req.file.buffer, uniqueFilename, req.file.mimetype);
       
       req.file.r2Url = publicUrl;
       req.file.filename = uniqueFilename;
+      console.log(`Single file uploaded successfully: ${publicUrl}`);
     } catch (error) {
       console.error('Error during R2 upload:', error);
-      return res.status(500).json({ message: 'Error uploading file to storage' });
+      return res.status(500).json({ message: 'Error uploading file to storage', error: error.message });
     }
   }
   next();

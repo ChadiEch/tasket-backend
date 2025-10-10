@@ -52,11 +52,14 @@ app.set('websocketService', websocketService);
 
 // Check if we should use Cloudflare R2
 const USE_CLOUDFLARE_R2 = process.env.USE_CLOUDFLARE_R2 === 'true';
+console.log('Server configuration:');
+console.log('  USE_CLOUDFLARE_R2:', USE_CLOUDFLARE_R2);
 
 // IMPORTANT: Serve uploaded files BEFORE other middleware to avoid conflicts
 // Only serve local files if not using Cloudflare R2
 if (!USE_CLOUDFLARE_R2) {
   const uploadsDir = process.env.UPLOADS_DIR || path.join(__dirname, 'persistent_uploads');
+  console.log(`Serving local uploads from: ${uploadsDir}`);
 
   // Custom CORS middleware for uploads - placed at the very beginning
   app.use('/uploads', (req, res, next) => {
@@ -76,6 +79,8 @@ if (!USE_CLOUDFLARE_R2) {
     
     next();
   }, express.static(uploadsDir));
+} else {
+  console.log('Cloudflare R2 is enabled, not serving local uploads');
 }
 
 // Security middleware

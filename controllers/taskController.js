@@ -6,6 +6,9 @@ const { deleteFromR2 } = require('../middleware/cloudflareR2Upload'); // Import 
 // Check if we should use Cloudflare R2
 const USE_CLOUDFLARE_R2 = process.env.USE_CLOUDFLARE_R2 === 'true';
 
+console.log('Task controller configuration:');
+console.log('  USE_CLOUDFLARE_R2:', USE_CLOUDFLARE_R2);
+
 // Helper function to delete old attachment files
 const deleteOldAttachment = (oldAttachmentPath) => {
   try {
@@ -685,11 +688,13 @@ const deleteTask = async (req, res) => {
             try {
               if (USE_CLOUDFLARE_R2 && attachment.url.includes('r2.cloudflarestorage.com')) {
                 // Delete from Cloudflare R2
+                console.log(`Deleting file from Cloudflare R2: ${attachment.url}`);
                 const urlParts = attachment.url.split('/');
                 const filename = urlParts[urlParts.length - 1];
                 await deleteFromR2(filename);
               } else if (attachment.url.startsWith('/uploads/')) {
                 // Delete from local storage
+                console.log(`Deleting file from local storage: ${attachment.url}`);
                 const fs = require('fs');
                 const path = require('path');
                 
@@ -702,7 +707,11 @@ const deleteTask = async (req, res) => {
                 if (fs.existsSync(filePath)) {
                   fs.unlinkSync(filePath);
                   console.log(`Deleted attachment file: ${filePath}`);
+                } else {
+                  console.log(`Attachment file not found: ${filePath}`);
                 }
+              } else {
+                console.log(`Skipping deletion of external file: ${attachment.url}`);
               }
             } catch (error) {
               console.error('Error deleting attachment file:', error);
@@ -800,11 +809,13 @@ const permanentlyDeleteTask = async (req, res) => {
           try {
             if (USE_CLOUDFLARE_R2 && attachment.url.includes('r2.cloudflarestorage.com')) {
               // Delete from Cloudflare R2
+              console.log(`Deleting file from Cloudflare R2: ${attachment.url}`);
               const urlParts = attachment.url.split('/');
               const filename = urlParts[urlParts.length - 1];
               await deleteFromR2(filename);
             } else if (attachment.url.startsWith('/uploads/')) {
               // Delete from local storage
+              console.log(`Deleting file from local storage: ${attachment.url}`);
               const fs = require('fs');
               const path = require('path');
               
@@ -817,7 +828,11 @@ const permanentlyDeleteTask = async (req, res) => {
               if (fs.existsSync(filePath)) {
                 fs.unlinkSync(filePath);
                 console.log(`Deleted attachment file: ${filePath}`);
+              } else {
+                console.log(`Attachment file not found: ${filePath}`);
               }
+            } else {
+              console.log(`Skipping deletion of external file: ${attachment.url}`);
             }
           } catch (error) {
             console.error('Error deleting attachment file:', error);

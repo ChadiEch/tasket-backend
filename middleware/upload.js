@@ -6,13 +6,21 @@ const sharp = require('sharp'); // Added for image compression
 // Check if we should use Cloudflare R2 instead of local storage
 const USE_CLOUDFLARE_R2 = process.env.USE_CLOUDFLARE_R2 === 'true';
 
+console.log('Upload middleware configuration:');
+console.log('  USE_CLOUDFLARE_R2:', USE_CLOUDFLARE_R2);
+
 // Use a more persistent directory for uploads
 // In production, you might want to use an environment variable for this
 const uploadsDir = process.env.UPLOADS_DIR || path.join(__dirname, '..', 'persistent_uploads');
 
 // Ensure uploads directory exists (only for local storage)
-if (!USE_CLOUDFLARE_R2 && !fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
+if (!USE_CLOUDFLARE_R2) {
+  if (!fs.existsSync(uploadsDir)) {
+    console.log(`Creating uploads directory: ${uploadsDir}`);
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  } else {
+    console.log(`Uploads directory exists: ${uploadsDir}`);
+  }
 }
 
 // Configure multer for task attachment uploads
@@ -20,22 +28,33 @@ let taskAttachmentStorage;
 if (USE_CLOUDFLARE_R2) {
   // Use in-memory storage when using Cloudflare R2
   taskAttachmentStorage = multer.memoryStorage();
+  console.log('Using in-memory storage for Cloudflare R2');
 } else {
   // Use disk storage for local storage
   taskAttachmentStorage = multer.diskStorage({
     destination: (req, file, cb) => {
+      console.log(`Saving file to local storage: ${uploadsDir}`);
       cb(null, uploadsDir);
     },
     filename: (req, file, cb) => {
       const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-      cb(null, 'task-attachment-' + uniqueSuffix + path.extname(file.originalname));
+      const filename = 'task-attachment-' + uniqueSuffix + path.extname(file.originalname);
+      console.log(`Generated filename: ${filename}`);
+      cb(null, filename);
     }
   });
+  console.log('Using disk storage for local uploads');
 }
 
 // Function to compress image files
 const compressImage = async (filePath, options = {}) => {
   try {
+    // Check if file exists
+    if (!fs.existsSync(filePath)) {
+      console.log(`File does not exist, skipping compression: ${filePath}`);
+      return;
+    }
+    
     // Default compression options
     const {
       quality = 80,
@@ -118,8 +137,10 @@ const taskAttachmentFileFilter = (req, file, cb) => {
   ];
   
   if (allowedTypes.includes(file.mimetype)) {
+    console.log(`File type accepted: ${file.mimetype}`);
     cb(null, true);
   } else {
+    console.log(`File type rejected: ${file.mimetype}`);
     cb(new Error('File type not allowed!'), false);
   }
 };
@@ -128,18 +149,23 @@ const taskAttachmentFileFilter = (req, file, cb) => {
 const compressUploadedFiles = async (req, res, next) => {
   // Skip compression if using Cloudflare R2
   if (USE_CLOUDFLARE_R2) {
+    console.log('Skipping compression as Cloudflare R2 is enabled');
     return next();
   }
   
   if (req.files && req.files.length > 0) {
+    console.log(`Compressing ${req.files.length} uploaded files`);
     try {
       // Process each uploaded file
       for (const file of req.files) {
         // Check if it's an image file
         if (file.mimetype.startsWith('image/')) {
           const filePath = path.join(uploadsDir, file.filename);
+          console.log(`Compressing image file: ${filePath}`);
           // Compress with default options
           await compressImage(filePath);
+        } else {
+          console.log(`Skipping compression for non-image file: ${file.originalname}`);
         }
       }
     } catch (error) {
@@ -150,8 +176,11 @@ const compressUploadedFiles = async (req, res, next) => {
     try {
       if (req.file.mimetype.startsWith('image/')) {
         const filePath = path.join(uploadsDir, req.file.filename);
+        console.log(`Compressing single image file: ${filePath}`);
         // Compress with default options
         await compressImage(filePath);
+      } else {
+        console.log(`Skipping compression for non-image file: ${req.file.originalname}`);
       }
     } catch (error) {
       console.error('Error during file compression:', error);
