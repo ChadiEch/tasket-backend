@@ -125,6 +125,7 @@ const taskAttachmentFileFilter = (req, file, cb) => {
     'image/svg+xml',
     'image/bmp',
     'image/tiff',
+    'image/avif',
     
     // Document files
     'application/pdf',
