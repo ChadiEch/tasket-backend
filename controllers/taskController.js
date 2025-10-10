@@ -716,6 +716,7 @@ const deleteTask = async (req, res) => {
                 const urlParts = attachment.url.split('/');
                 const filename = urlParts[urlParts.length - 1];
                 await deleteFromR2(filename);
+                console.log(`Successfully deleted file from Cloudflare R2: ${filename}`);
               } else if (attachment.url.startsWith('/uploads/')) {
                 // Delete from local storage
                 console.log(`Deleting file from local storage: ${attachment.url}`);
@@ -738,7 +739,8 @@ const deleteTask = async (req, res) => {
                 console.log(`Skipping deletion of external file: ${attachment.url}`);
               }
             } catch (error) {
-              console.error('Error deleting attachment file:', error);
+              console.error(`Error deleting attachment file ${attachment.url}:`, error);
+              // Continue with other deletions even if one fails
             }
           }
         }
@@ -859,6 +861,7 @@ const permanentlyDeleteTask = async (req, res) => {
               const urlParts = attachment.url.split('/');
               const filename = urlParts[urlParts.length - 1];
               await deleteFromR2(filename);
+              console.log(`Successfully deleted file from Cloudflare R2: ${filename}`);
             } else if (attachment.url.startsWith('/uploads/')) {
               // Delete from local storage
               console.log(`Deleting file from local storage: ${attachment.url}`);
@@ -881,7 +884,8 @@ const permanentlyDeleteTask = async (req, res) => {
               console.log(`Skipping deletion of external file: ${attachment.url}`);
             }
           } catch (error) {
-            console.error('Error deleting attachment file:', error);
+            console.error(`Error deleting attachment file ${attachment.url}:`, error);
+            // Continue with other deletions even if one fails
           }
         }
       }

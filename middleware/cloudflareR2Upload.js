@@ -223,6 +223,12 @@ const deleteFromR2 = async (filename) => {
     return;
   }
 
+  // Validate filename
+  if (!filename || typeof filename !== 'string') {
+    console.warn('Invalid filename provided for deletion:', filename);
+    return;
+  }
+
   const params = {
     Bucket: R2_BUCKET_NAME?.trim(), // Trim whitespace
     Key: filename?.trim(), // Trim whitespace
@@ -231,8 +237,9 @@ const deleteFromR2 = async (filename) => {
   try {
     console.log(`Deleting file from Cloudflare R2: ${filename}`);
     const command = new DeleteObjectCommand(params);
-    await s3Client.send(command);
+    const response = await s3Client.send(command);
     console.log(`Successfully deleted file from Cloudflare R2: ${filename}`);
+    return response; // Return the response for potential use
   } catch (error) {
     console.error('Error deleting from R2:', error);
     // Log more details about the error
@@ -244,6 +251,7 @@ const deleteFromR2 = async (filename) => {
         totalRetryDelay: error.$metadata.totalRetryDelay
       });
     }
+    // Re-throw the error so it can be handled by the calling function
     throw new Error(`Failed to delete file from Cloudflare R2: ${error.message}`);
   }
 };
