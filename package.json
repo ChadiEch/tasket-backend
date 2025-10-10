@@ -16,6 +16,8 @@
     "migrate:persistent": "node scripts/migrateToPersistentStorage.js",
     "test:storage": "node test-storage.js",
     "test:r2": "node test-r2-config.js",
+    "diagnose:railway": "node diagnose-railway-r2.js",
+    "test:r2-connection": "node test-r2-connection.js",
     "build": "echo 'No build step required for backend API'",
     "build:full": "npm install && npm run seed:prod",
     "test": "jest",

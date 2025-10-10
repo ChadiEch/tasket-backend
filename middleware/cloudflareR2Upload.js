@@ -15,7 +15,7 @@ const USE_CLOUDFLARE_R2 = process.env.USE_CLOUDFLARE_R2 === 'true';
 
 console.log('Cloudflare R2 Configuration:');
 console.log('  USE_CLOUDFLARE_R2:', USE_CLOUDFLARE_R2);
-console.log('  R2_ACCOUNT_ID:', R2_ACCOUNT_ID);
+console.log('  R2_ACCOUNT_ID:', R2_ACCOUNT_ID ? 'SET' : 'NOT SET');
 console.log('  R2_ACCESS_KEY_ID:', R2_ACCESS_KEY_ID ? 'SET' : 'NOT SET');
 console.log('  R2_SECRET_ACCESS_KEY:', R2_SECRET_ACCESS_KEY ? 'SET' : 'NOT SET');
 console.log('  R2_BUCKET_NAME:', R2_BUCKET_NAME);
@@ -52,6 +52,7 @@ if (isR2ProperlyConfigured) {
     console.log('✅ Cloudflare R2 client initialized successfully');
   } catch (error) {
     console.error('❌ Failed to initialize Cloudflare R2 client:', error.message);
+    console.error('Error details:', error);
     isR2ProperlyConfigured = false;
   }
 } else {
@@ -127,7 +128,7 @@ const uploadToR2 = async (fileBuffer, filename, mimetype) => {
         totalRetryDelay: error.$metadata.totalRetryDelay
       });
     }
-    throw error;
+    throw new Error(`Failed to upload file to Cloudflare R2: ${error.message}`);
   }
 };
 
@@ -165,7 +166,7 @@ const deleteFromR2 = async (filename) => {
         totalRetryDelay: error.$metadata.totalRetryDelay
       });
     }
-    throw error;
+    throw new Error(`Failed to delete file from Cloudflare R2: ${error.message}`);
   }
 };
 
@@ -204,7 +205,9 @@ const uploadToR2Middleware = async (req, res, next) => {
       const errorMessage = error.message || 'Unknown error during R2 upload';
       const errorDetails = {
         message: 'Error uploading files to Cloudflare R2 storage',
-        error: errorMessage
+        error: errorMessage,
+        // Include stack trace in development
+        ...(process.env.NODE_ENV !== 'production' && { stack: error.stack })
       };
       
       // Add AWS-specific error details if available
@@ -235,7 +238,9 @@ const uploadToR2Middleware = async (req, res, next) => {
       const errorMessage = error.message || 'Unknown error during R2 upload';
       const errorDetails = {
         message: 'Error uploading file to Cloudflare R2 storage',
-        error: errorMessage
+        error: errorMessage,
+        // Include stack trace in development
+        ...(process.env.NODE_ENV !== 'production' && { stack: error.stack })
       };
       
       // Add AWS-specific error details if available
