@@ -782,6 +782,7 @@ const restoreTask = async (req, res) => {
     }
 
     // Restore task to its previous status or default to 'planned'
+    // Preserve the assigned_to field when restoring
     const previousStatus = task.status_before_trash || 'planned';
     
     await task.update({
@@ -790,15 +791,36 @@ const restoreTask = async (req, res) => {
       trashed_at: null
     });
 
+    // Get the updated task with all associated data
+    const updatedTask = await Task.findByPk(id, {
+      include: [
+        {
+          model: Employee,
+          as: 'assignedToEmployee',
+          attributes: ['id', 'name', 'email', 'position']
+        },
+        {
+          model: Employee,
+          as: 'createdByEmployee',
+          attributes: ['id', 'name', 'email']
+        },
+        {
+          model: Department,
+          as: 'department',
+          attributes: ['id', 'name']
+        }
+      ]
+    });
+
     // Emit WebSocket event for real-time updates
     const websocketService = req.app.get('websocketService');
     if (websocketService) {
-      websocketService.notifyTaskUpdated(task, req.user);
+      websocketService.notifyTaskUpdated(updatedTask, req.user);
     }
 
     res.json({ 
       message: 'Task restored successfully',
-      task 
+      task: updatedTask
     });
   } catch (error) {
     console.error('Restore task error:', error);
@@ -888,10 +910,9 @@ const getTrashedTasks = async (req, res) => {
       status: 'trashed'
     };
 
-    // If not admin, only show trashed tasks created by user
-    if (req.user.role !== 'admin') {
-      where.created_by = req.user.id;
-    }
+    // Only show trashed tasks created by the current user
+    // Both admins and regular users should only see their own trashed tasks
+    where.created_by = req.user.id;
 
     const tasks = await Task.findAll({
       where,
