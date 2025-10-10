@@ -1,4 +1,4 @@
-const { S3Client, PutObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
+const { S3Client, PutObjectCommand, DeleteObjectCommand, HeadObjectCommand } = require('@aws-sdk/client-s3');
 const multer = require('multer');
 const crypto = require('crypto');
 const path = require('path');
@@ -130,6 +130,35 @@ const taskAttachmentFileFilter = (req, file, cb) => {
   }
 };
 
+// Function to check if a file already exists in Cloudflare R2
+const checkIfFileExists = async (filename) => {
+  if (!isR2ProperlyConfigured || !R2_BUCKET_NAME) {
+    return false;
+  }
+
+  try {
+    const params = {
+      Bucket: R2_BUCKET_NAME?.trim(),
+      Key: filename?.trim(),
+    };
+
+    await s3Client.send(new HeadObjectCommand(params));
+    // If HeadObjectCommand succeeds, the file exists
+    console.log(`File ${filename} already exists in Cloudflare R2 bucket`);
+    return true;
+  } catch (error) {
+    // If HeadObjectCommand throws an error, the file doesn't exist (or there's an access issue)
+    if (error.name === 'NotFound' || error.code === 'NotFound') {
+      console.log(`File ${filename} does not exist in Cloudflare R2 bucket`);
+      return false;
+    } else {
+      // Some other error occurred
+      console.error('Error checking if file exists in R2:', error);
+      return false;
+    }
+  }
+};
+
 // Function to upload file to Cloudflare R2
 const uploadToR2 = async (fileBuffer, filename, mimetype) => {
   // Check if R2 is properly configured
@@ -139,6 +168,16 @@ const uploadToR2 = async (fileBuffer, filename, mimetype) => {
   
   if (!R2_BUCKET_NAME) {
     throw new Error('R2_BUCKET_NAME is not set');
+  }
+
+  // Check if file already exists
+  const fileExists = await checkIfFileExists(filename);
+  
+  if (fileExists) {
+    // File already exists, return the existing URL without re-uploading
+    const publicUrl = `https://${R2_PUBLIC_BUCKET_KEY}.r2.dev/${filename}`;
+    console.log(`File ${filename} already exists. Using existing URL: ${publicUrl}`);
+    return publicUrl;
   }
 
   const params = {
@@ -229,14 +268,14 @@ const uploadToR2Middleware = async (req, res, next) => {
         const fileExtension = path.extname(file.originalname);
         const uniqueFilename = `task-attachment-${Date.now()}-${crypto.randomBytes(4).toString('hex')}${fileExtension}`;
         
-        console.log(`Uploading file: ${file.originalname} as ${uniqueFilename}`);
+        console.log(`Processing file: ${file.originalname} as ${uniqueFilename}`);
         // Upload to R2
         const publicUrl = await uploadToR2(file.buffer, uniqueFilename, file.mimetype);
         
         // Add the public URL to the file object
         file.r2Url = publicUrl;
         file.filename = uniqueFilename;
-        console.log(`File uploaded successfully: ${publicUrl}`);
+        console.log(`File processed successfully: ${publicUrl}`);
       }
     } catch (error) {
       console.error('Error during R2 upload:', error);
@@ -265,12 +304,12 @@ const uploadToR2Middleware = async (req, res, next) => {
       const fileExtension = path.extname(req.file.originalname);
       const uniqueFilename = `task-attachment-${Date.now()}-${crypto.randomBytes(4).toString('hex')}${fileExtension}`;
       
-      console.log(`Uploading single file: ${req.file.originalname} as ${uniqueFilename}`);
+      console.log(`Processing single file: ${req.file.originalname} as ${uniqueFilename}`);
       const publicUrl = await uploadToR2(req.file.buffer, uniqueFilename, req.file.mimetype);
       
       req.file.r2Url = publicUrl;
       req.file.filename = uniqueFilename;
-      console.log(`Single file uploaded successfully: ${publicUrl}`);
+      console.log(`Single file processed successfully: ${publicUrl}`);
     } catch (error) {
       console.error('Error during R2 upload:', error);
       // Provide more detailed error information
@@ -309,5 +348,6 @@ const taskAttachmentUpload = multer({
 module.exports = {
   taskAttachmentUpload,
   uploadToR2Middleware,
-  deleteFromR2 // Export delete function for use when deleting tasks
+  deleteFromR2,
+  checkIfFileExists // Export the new function for use in tests
 };
