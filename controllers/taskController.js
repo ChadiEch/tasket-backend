@@ -185,7 +185,8 @@ const createTask = async (req, res) => {
       priority,
       due_date,
       tags,
-      attachments // This will be handled separately
+      attachments, // This will be handled separately
+      created_at // Add created_at field
     } = taskData;
 
     // For admins, allow assignment to any employee or unassigned (null)
@@ -246,6 +247,7 @@ const createTask = async (req, res) => {
       actualHours = 0;
     }
 
+    // Prepare the final task data
     const finalTaskData = {
       title,
       description,
@@ -262,6 +264,17 @@ const createTask = async (req, res) => {
       tags: Array.isArray(tags) ? tags : [],
       attachments: processedAttachments
     };
+
+    // For admins, allow setting created_at manually
+    if (req.user.role === 'admin' && created_at) {
+      // Validate that created_at is a valid date
+      const createdAtDate = new Date(created_at);
+      if (!isNaN(createdAtDate.getTime())) {
+        finalTaskData.created_at = createdAtDate;
+      } else {
+        console.warn('Invalid created_at value provided, using default');
+      }
+    }
 
     console.log('Final task data to be created:', finalTaskData);
 
@@ -402,6 +415,17 @@ const updateTask = async (req, res) => {
         updateData.estimated_hours = parsedEstimatedHours;
       } else if (parsedEstimatedHours === 0) {
         updateData.estimated_hours = 0.00;
+      }
+    }
+    
+    // For admins, allow updating created_at manually
+    if (req.user.role === 'admin' && taskData.created_at !== undefined) {
+      // Validate that created_at is a valid date
+      const createdAtDate = new Date(taskData.created_at);
+      if (!isNaN(createdAtDate.getTime())) {
+        updateData.created_at = createdAtDate;
+      } else {
+        console.warn('Invalid created_at value provided for update, ignoring');
       }
     }
     
