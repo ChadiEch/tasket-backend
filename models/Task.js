@@ -164,11 +164,18 @@ const Task = sequelize.define('Task', {
 // Add a custom method to update the created_at field
 Task.prototype.updateCreatedAt = async function(newDate) {
   try {
-    // Directly update the field in the database
-    await this.update({ created_at: newDate }, { 
-      fields: ['created_at'],
-      silent: true // Don't update the updated_at field
-    });
+    // Use a raw query to bypass Sequelize's automatic timestamp management
+    const sequelize = require('../config/database');
+    await sequelize.query(
+      'UPDATE tasks SET created_at = ? WHERE id = ?',
+      {
+        replacements: [newDate, this.id],
+        type: sequelize.QueryTypes.UPDATE
+      }
+    );
+    
+    // Update the instance in memory
+    this.created_at = newDate;
     
     console.log('Successfully updated created_at to:', newDate);
     return this;

@@ -442,8 +442,8 @@ const updateTask = async (req, res) => {
     console.log('Update data being sent to database:', JSON.stringify(updateData, null, 2));
     
     // Only update other fields if there are any besides created_at
-    const fieldsToUpdate = Object.keys(updateData);
-    if (fieldsToUpdate.length > 0 && !(fieldsToUpdate.length === 1 && fieldsToUpdate.includes('created_at'))) {
+    const fieldsToUpdate = Object.keys(updateData).filter(field => field !== 'created_at');
+    if (fieldsToUpdate.length > 0) {
       await task.update(updateData, { 
         fields: fieldsToUpdate,
         silent: true // Don't update the updated_at field automatically
