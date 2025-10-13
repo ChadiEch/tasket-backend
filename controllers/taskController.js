@@ -374,6 +374,11 @@ const updateTask = async (req, res) => {
       taskData = req.body;
     }
 
+    console.log('Update task request for ID:', id);
+    console.log('Task data received:', JSON.stringify(taskData, null, 2));
+    console.log('User role:', req.user.role);
+    console.log('Created at in request:', taskData.created_at);
+
     const task = await Task.findByPk(id);
     if (!task) {
       return res.status(404).json({ message: 'Task not found' });
@@ -423,82 +428,18 @@ const updateTask = async (req, res) => {
       // Validate that created_at is a valid date
       const createdAtDate = new Date(taskData.created_at);
       if (!isNaN(createdAtDate.getTime())) {
+        console.log('Setting created_at to:', createdAtDate);
         updateData.created_at = createdAtDate;
       } else {
         console.warn('Invalid created_at value provided for update, ignoring');
       }
     }
     
-    // Automatically set start_date when task status changes to 'in-progress'
-    if (taskData.status === 'in-progress' && task.status !== 'in-progress') {
-      // Only set start_date if it's not already set
-      if (!task.start_date) {
-        updateData.start_date = new Date();
-      }
-    }
+    console.log('Update data being sent to database:', JSON.stringify(updateData, null, 2));
     
-    // Automatically calculate actual hours when task is completed
-    if (taskData.status === 'completed' && task.status !== 'completed') {
-      // Only calculate if start_date exists
-      if (task.start_date) {
-        const startDate = new Date(task.start_date);
-        const completedDate = new Date();
-        const diffInHours = (completedDate - startDate) / (1000 * 60 * 60); // Calculate in hours with decimals
-        updateData.actual_hours = parseFloat(diffInHours.toFixed(2)); // Ensure 2 decimal places
-        updateData.completed_date = completedDate;
-      } else {
-        // If no start date, use a default calculation or set to 0
-        updateData.actual_hours = 0.00;
-        updateData.completed_date = new Date();
-      }
-    } else if (taskData.status !== 'completed' && task.status === 'completed') {
-      // If task is being changed from completed to another status, clear actual_hours and completed_date
-      updateData.actual_hours = null;
-      updateData.completed_date = null;
-    }
-    
-    if (taskData.tags !== undefined) updateData.tags = Array.isArray(taskData.tags) ? taskData.tags : [];
-    
-    // Process uploaded files for attachments
-    let processedAttachments = taskData.attachments;
-    if (req.files && req.files.length > 0) {
-      // Add uploaded files to attachments
-      const uploadedFiles = req.files.map(file => {
-        let type = 'document'; // Default type
-        if (file.mimetype.startsWith('image/')) {
-          type = 'photo';
-        } else if (file.mimetype.startsWith('video/')) {
-          type = 'video';
-        }
-        
-        return {
-          id: Date.now() + Math.random(), // Generate a temporary ID
-          type: type,
-          // Use R2 URL if enabled, otherwise use local path
-          url: USE_CLOUDFLARE_R2 ? file.r2Url : `/uploads/${file.filename}`,
-          name: file.originalname
-        };
-      });
-      
-      // If we're updating and have existing attachments, filter out any placeholder attachments
-      // that were added for file uploads (they have empty URLs)
-      if (processedAttachments && Array.isArray(processedAttachments)) {
-        // Filter out placeholder attachments (those with empty URLs that were meant to be replaced)
-        const filteredAttachments = processedAttachments.filter(attachment => attachment && attachment.url);
-        processedAttachments = [...filteredAttachments, ...uploadedFiles];
-      } else {
-        processedAttachments = uploadedFiles;
-      }
-    }
-    
-    // Update attachments if provided
-    if (processedAttachments !== undefined) {
-      // Ensure we only store valid attachments with URLs
-      updateData.attachments = Array.isArray(processedAttachments) ? 
-        processedAttachments.filter(att => att && att.url) : [];
-    }
-
     await task.update(updateData);
+    
+    console.log('Task updated successfully. New task data:', JSON.stringify(task, null, 2));
 
     const updatedTask = await Task.findByPk(id, {
       include: [
