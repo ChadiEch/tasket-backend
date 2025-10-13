@@ -377,7 +377,6 @@ const updateTask = async (req, res) => {
     console.log('Update task request for ID:', id);
     console.log('Task data received:', JSON.stringify(taskData, null, 2));
     console.log('User role:', req.user.role);
-    console.log('Created at in request:', taskData.created_at);
 
     const task = await Task.findByPk(id);
     if (!task) {
