@@ -161,4 +161,21 @@ const Task = sequelize.define('Task', {
   updatedAt: 'updated_at'
 });
 
+// Add a custom method to update the created_at field
+Task.prototype.updateCreatedAt = async function(newDate) {
+  try {
+    // Directly update the field in the database
+    await this.update({ created_at: newDate }, { 
+      fields: ['created_at'],
+      silent: true // Don't update the updated_at field
+    });
+    
+    console.log('Successfully updated created_at to:', newDate);
+    return this;
+  } catch (error) {
+    console.error('Error updating created_at:', error);
+    throw error;
+  }
+};
+
 module.exports = Task;

@@ -1,3 +1,14 @@
+const {
+  getTasks,
+  getTask,
+  createTask,
+  updateTask,
+  deleteTask,
+  restoreTask,
+  permanentlyDeleteTask,
+  getTrashedTasks
+} = require('../controllers/taskController');
+
 const express = require('express');
 const { body } = require('express-validator');
 const validator = require('validator');
@@ -24,17 +35,6 @@ if (USE_CLOUDFLARE_R2) {
     // Keep the original middleware if R2 middleware fails to load
   }
 }
-
-const {
-  getTasks,
-  getTask,
-  createTask,
-  updateTask,
-  deleteTask,
-  restoreTask,
-  permanentlyDeleteTask,
-  getTrashedTasks
-} = require('../controllers/taskController');
 
 const router = express.Router();
 

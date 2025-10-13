@@ -429,6 +429,10 @@ const updateTask = async (req, res) => {
       if (!isNaN(createdAtDate.getTime())) {
         console.log('Setting created_at to:', createdAtDate);
         console.log('Original created_at value:', taskData.created_at);
+        // Use the custom method to update created_at
+        await task.updateCreatedAt(createdAtDate);
+        console.log('Created_at updated successfully in database');
+        // Also update in updateData for the response
         updateData.created_at = createdAtDate;
       } else {
         console.warn('Invalid created_at value provided for update, ignoring');
@@ -437,13 +441,16 @@ const updateTask = async (req, res) => {
     
     console.log('Update data being sent to database:', JSON.stringify(updateData, null, 2));
     
-    // If we're updating created_at, we need to explicitly allow it
-    await task.update(updateData, { 
-      fields: Object.keys(updateData),
-      silent: true // Don't update the updated_at field automatically
-    });
+    // Only update other fields if there are any besides created_at
+    const fieldsToUpdate = Object.keys(updateData);
+    if (fieldsToUpdate.length > 0 && !(fieldsToUpdate.length === 1 && fieldsToUpdate.includes('created_at'))) {
+      await task.update(updateData, { 
+        fields: fieldsToUpdate,
+        silent: true // Don't update the updated_at field automatically
+      });
+    }
     
-    console.log('Task updated successfully.');
+    console.log('Task update process completed.');
     console.log('Update data that was sent:', JSON.stringify(updateData, null, 2));
     
     // Refresh the task to see the actual updated values
@@ -893,6 +900,77 @@ const getTrashedTasks = async (req, res) => {
     res.json({ tasks });
   } catch (error) {
     console.error('Get trashed tasks error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+const updateTaskCreatedAt = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { created_at } = req.body;
+
+    console.log('Update task created_at request for ID:', id);
+    console.log('New created_at value:', created_at);
+
+    const task = await Task.findByPk(id);
+    if (!task) {
+      return res.status(404).json({ message: 'Task not found' });
+    }
+
+    // Check if user has permission to update this task
+    if (req.user.role !== 'admin' && 
+        task.assigned_to !== req.user.id && 
+        task.created_by !== req.user.id) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    // Validate that created_at is a valid date
+    const createdAtDate = new Date(created_at);
+    if (isNaN(createdAtDate.getTime())) {
+      return res.status(400).json({ message: 'Invalid created_at value provided' });
+    }
+
+    console.log('Setting created_at to:', createdAtDate);
+    
+    // Use the custom method to update created_at
+    await task.updateCreatedAt(createdAtDate);
+    console.log('Created_at updated successfully in database');
+
+    // Reload the task to get the updated data
+    await task.reload();
+
+    const updatedTask = await Task.findByPk(id, {
+      include: [
+        {
+          model: Employee,
+          as: 'assignedToEmployee',
+          attributes: ['id', 'name', 'email', 'position']
+        },
+        {
+          model: Employee,
+          as: 'createdByEmployee',
+          attributes: ['id', 'name', 'email']
+        },
+        {
+          model: Department,
+          as: 'department',
+          attributes: ['id', 'name']
+        }
+      ]
+    });
+
+    // Emit WebSocket event for real-time updates
+    const websocketService = req.app.get('websocketService');
+    if (websocketService) {
+      websocketService.notifyTaskUpdated(updatedTask, req.user);
+    }
+
+    res.json({
+      message: 'Task created_at updated successfully',
+      task: updatedTask
+    });
+  } catch (error) {
+    console.error('Update task created_at error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
