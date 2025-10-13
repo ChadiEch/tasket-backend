@@ -429,6 +429,7 @@ const updateTask = async (req, res) => {
       const createdAtDate = new Date(taskData.created_at);
       if (!isNaN(createdAtDate.getTime())) {
         console.log('Setting created_at to:', createdAtDate);
+        console.log('Original created_at value:', taskData.created_at);
         updateData.created_at = createdAtDate;
       } else {
         console.warn('Invalid created_at value provided for update, ignoring');
@@ -437,9 +438,18 @@ const updateTask = async (req, res) => {
     
     console.log('Update data being sent to database:', JSON.stringify(updateData, null, 2));
     
-    await task.update(updateData);
+    // If we're updating created_at, we need to explicitly allow it
+    await task.update(updateData, { 
+      fields: Object.keys(updateData),
+      silent: true // Don't update the updated_at field automatically
+    });
     
-    console.log('Task updated successfully. New task data:', JSON.stringify(task, null, 2));
+    console.log('Task updated successfully.');
+    console.log('Update data that was sent:', JSON.stringify(updateData, null, 2));
+    
+    // Refresh the task to see the actual updated values
+    await task.reload();
+    console.log('Task data after reload:', JSON.stringify(task.toJSON(), null, 2));
 
     const updatedTask = await Task.findByPk(id, {
       include: [
