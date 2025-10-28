@@ -110,7 +110,7 @@ const createProject = async (req, res) => {
   }
 
   try {
-    const { title, description, start_date, end_date } = req.body;
+    const { title, description, start_date, end_date, columns } = req.body;
     const userId = req.user.id;
 
     // Validate required fields
@@ -130,11 +130,34 @@ const createProject = async (req, res) => {
       return res.status(400).json({ message: 'Start date must be before end date' });
     }
 
+    // Validate columns if provided
+    if (columns !== undefined) {
+      if (!Array.isArray(columns)) {
+        return res.status(400).json({ message: 'Columns must be an array' });
+      }
+      
+      // Validate each column
+      for (const column of columns) {
+        if (!column || typeof column !== 'object') {
+          return res.status(400).json({ message: 'Each column must be an object' });
+        }
+        
+        if (!column.id) {
+          return res.status(400).json({ message: 'Each column must have an id' });
+        }
+        
+        if (!column.title) {
+          return res.status(400).json({ message: 'Each column must have a title' });
+        }
+      }
+    }
+
     const project = await Project.create({
       title,
       description,
       start_date,
       end_date,
+      columns: columns || [], // Set columns if provided, otherwise empty array
       created_by: userId  // Set the creator
     });
 
@@ -156,7 +179,7 @@ const updateProject = async (req, res) => {
 
   try {
     const { id } = req.params;
-    const { title, description, start_date, end_date } = req.body;
+    const { title, description, start_date, end_date, columns } = req.body;
     const userId = req.user.id;
 
     // Check if the project was created by the user
@@ -178,6 +201,29 @@ const updateProject = async (req, res) => {
     if (description !== undefined) updateData.description = description;
     if (start_date !== undefined) updateData.start_date = start_date;
     if (end_date !== undefined) updateData.end_date = end_date;
+    if (columns !== undefined) {
+      // Validate columns if provided
+      if (!Array.isArray(columns)) {
+        return res.status(400).json({ message: 'Columns must be an array' });
+      }
+      
+      // Validate each column
+      for (const column of columns) {
+        if (!column || typeof column !== 'object') {
+          return res.status(400).json({ message: 'Each column must be an object' });
+        }
+        
+        if (!column.id) {
+          return res.status(400).json({ message: 'Each column must have an id' });
+        }
+        
+        if (!column.title) {
+          return res.status(400).json({ message: 'Each column must have a title' });
+        }
+      }
+      
+      updateData.columns = columns;
+    }
 
     // Validate date range if both dates are provided
     if (updateData.start_date && updateData.end_date) {

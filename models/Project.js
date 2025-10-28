@@ -31,6 +31,55 @@ const Project = sequelize.define('Project', {
       key: 'id'
     }
   },
+  // Add columns field to store project-specific columns
+  columns: {
+    type: DataTypes.JSON,
+    defaultValue: [],
+    get() {
+      const rawValue = this.getDataValue('columns');
+      if (!rawValue) return [];
+      
+      // Handle different possible formats
+      if (Array.isArray(rawValue)) return rawValue;
+      
+      try {
+        // Try to parse if it's a JSON string
+        return JSON.parse(rawValue);
+      } catch (e) {
+        // If parsing fails, return empty array
+        console.error('Error parsing columns JSON:', e);
+        return [];
+      }
+    },
+    set(value) {
+      // Ensure we always store as an array
+      const arrayValue = Array.isArray(value) ? value : [];
+      this.setDataValue('columns', arrayValue);
+    },
+    validate: {
+      // Custom validator to ensure columns are properly formatted
+      isValidColumns(value) {
+        if (!Array.isArray(value)) {
+          throw new Error('Columns must be an array');
+        }
+        
+        // Validate each column
+        for (const column of value) {
+          if (!column || typeof column !== 'object') {
+            throw new Error('Each column must be an object');
+          }
+          
+          if (!column.id) {
+            throw new Error('Each column must have an id');
+          }
+          
+          if (!column.title) {
+            throw new Error('Each column must have a title');
+          }
+        }
+      }
+    }
+  },
   created_at: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW
