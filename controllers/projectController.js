@@ -3,16 +3,8 @@ const { Op } = require('sequelize');
 
 const getProjects = async (req, res) => {
   try {
-    const userId = req.user.id;
-    const userRole = req.user.role;
-
-    // For all users, only show projects they created
-    const whereClause = {
-      created_by: userId
-    };
-
+    // Show all projects to all users (not just projects they created)
     const projects = await Project.findAll({
-      where: whereClause,
       order: [['created_at', 'DESC']]
     });
 
