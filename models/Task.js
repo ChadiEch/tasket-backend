@@ -78,6 +78,14 @@ const Task = sequelize.define('Task', {
       this.setDataValue('tags', Array.isArray(value) ? value : []);
     }
   },
+  project_id: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: {
+      model: 'projects',
+      key: 'id'
+    }
+  },
   // Add attachments field for documents, links, and photos
   attachments: {
     type: DataTypes.JSON,

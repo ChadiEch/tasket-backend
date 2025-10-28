@@ -14,6 +14,7 @@
     "seed:prod": "NODE_ENV=production node scripts/seed.js",
     "migrate:uploads": "node scripts/migrateUploads.js",
     "migrate:persistent": "node scripts/migrateToPersistentStorage.js",
+    "migrate:project-id": "node scripts/run-migration.js",
     "test:storage": "node test-storage.js",
     "test:r2": "node test-r2-config.js",
     "diagnose:railway": "node diagnose-railway-r2.js",

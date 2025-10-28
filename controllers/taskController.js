@@ -186,7 +186,8 @@ const createTask = async (req, res) => {
       due_date,
       tags,
       attachments, // This will be handled separately
-      created_at // Add created_at field
+      created_at, // Add created_at field
+      project_id // Add project_id field
     } = taskData;
 
     // For admins, allow assignment to any employee or unassigned (null)
@@ -254,6 +255,7 @@ const createTask = async (req, res) => {
       assigned_to: assignedToEmployee,
       created_by: req.user.id,
       department_id,
+      project_id, // Add project_id
       status: status || 'planned',
       priority: priority || 'medium',
       due_date,
@@ -409,6 +411,7 @@ const updateTask = async (req, res) => {
       }
     }
     if (taskData.department_id !== undefined) updateData.department_id = taskData.department_id;
+    if (taskData.project_id !== undefined) updateData.project_id = taskData.project_id;
     if (taskData.status !== undefined) updateData.status = taskData.status;
     if (taskData.priority !== undefined) updateData.priority = taskData.priority;
     if (taskData.due_date !== undefined) updateData.due_date = taskData.due_date;
