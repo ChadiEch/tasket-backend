@@ -9,7 +9,8 @@ async function updateMeistertaskProjectsTable() {
   } catch (error) {
     console.error('Error updating meistertask_projects table:', error);
   } finally {
-    await sequelize.close();
+    // Don't close the sequelize connection as it might be used elsewhere
+    // await sequelize.close();
   }
 }
 
