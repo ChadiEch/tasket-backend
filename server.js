@@ -158,6 +158,7 @@ app.use('/api/tasks', require('./routes/tasks'));
 app.use('/api/departments', require('./routes/departments'));
 app.use('/api/employees', require('./routes/employees'));
 app.use('/api/projects', require('./routes/projects'));
+app.use('/api/meistertask-projects', require('./routes/meistertaskProjects'));
 app.use('/api/notifications', require('./routes/notifications'));
 
 // Serve static frontend files in production
