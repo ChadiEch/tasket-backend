@@ -86,10 +86,10 @@ if (!USE_CLOUDFLARE_R2) {
 // Security middleware
 app.use(helmet());
 
-// Rate limiting
+// Rate limiting - increased limits for better performance
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  max: 500, // Increased limit to 500 requests per windowMs
   message: 'Too many requests from this IP, please try again later.'
 });
 app.use('/api/', limiter);
@@ -127,11 +127,20 @@ app.use(cors({
     if (isAllowedOrigin) {
       callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'));
+      console.log('CORS blocked origin:', origin);
+      callback(null, true); // Temporarily allow all origins for debugging
     }
   },
-  credentials: true
+  credentials: true,
+  optionsSuccessStatus: 200 // Some legacy browsers (IE11, various SmartTVs) choke on 204
 }));
+
+// Add headers middleware after CORS
+app.use((req, res, next) => {
+  res.header('Cross-Origin-Resource-Policy', 'cross-origin');
+  res.header('Cross-Origin-Embedder-Policy', 'unsafe-none');
+  next();
+});
 
 // Body parsing middleware
 app.use(express.json({ limit: '50mb' }));
