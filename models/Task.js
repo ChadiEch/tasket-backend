@@ -86,6 +86,15 @@ const Task = sequelize.define('Task', {
       key: 'id'
     }
   },
+  // Add meistertask_project_id field for Meistertask projects
+  meistertask_project_id: {
+    type: DataTypes.UUID,
+    allowNull: true,
+    references: {
+      model: 'meistertask_projects',
+      key: 'id'
+    }
+  },
   // Add attachments field for documents, links, and photos
   attachments: {
     type: DataTypes.JSON,

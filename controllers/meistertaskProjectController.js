@@ -54,7 +54,7 @@ const getMeistertaskProjectTasks = async (req, res) => {
 
     // Get tasks for this project
     let whereClause = {
-      project_id: id
+      meistertask_project_id: id
     };
 
     const tasks = await Task.findAll({
