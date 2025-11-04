@@ -32,6 +32,10 @@ TaskComment.belongsTo(Employee, { foreignKey: 'employee_id', as: 'employee' });
 Employee.hasMany(Project, { foreignKey: 'created_by', as: 'createdProjects' });
 Project.belongsTo(Employee, { foreignKey: 'created_by', as: 'creator' });
 
+// Task-Project associations
+Project.hasMany(Task, { foreignKey: 'project_id', as: 'tasks' });
+Task.belongsTo(Project, { foreignKey: 'project_id', as: 'project' });
+
 // Notification associations
 Employee.hasMany(Notification, { foreignKey: 'recipient_id', as: 'notifications' });
 Notification.belongsTo(Employee, { foreignKey: 'recipient_id', as: 'recipient' });

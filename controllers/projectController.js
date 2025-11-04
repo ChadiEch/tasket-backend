@@ -18,14 +18,11 @@ const getProjects = async (req, res) => {
 const getProject = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user.id;
-    const userRole = req.user.role;
 
-    // Check if the project was created by the user
+    // Check if the project exists (no ownership check for viewing)
     const project = await Project.findOne({
       where: {
-        id: id,
-        created_by: userId
+        id: id
       }
     });
 
@@ -43,14 +40,12 @@ const getProject = async (req, res) => {
 const getProjectTasks = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user.id;
-    const userRole = req.user.role;
+    const { startDate, endDate } = req.query; // Optional date range parameters
 
-    // Check if the project was created by the user
+    // Check if the project exists
     const project = await Project.findOne({
       where: {
-        id: id,
-        created_by: userId
+        id: id
       }
     });
 
@@ -58,13 +53,23 @@ const getProjectTasks = async (req, res) => {
       return res.status(404).json({ message: 'Project not found' });
     }
 
-    // Get tasks within the project date range and assigned to the user
+    // Build where clause for tasks
     let whereClause = {
-      due_date: {
-        [Op.between]: [project.start_date, project.end_date]
-      },
-      assigned_to: userId  // Only show tasks assigned to the logged-in user
+      project_id: id
     };
+
+    // Add date range filtering if provided
+    if (startDate && endDate) {
+      // Filter tasks by created_at date within the specified range
+      whereClause.created_at = {
+        [Op.between]: [new Date(startDate), new Date(endDate)]
+      };
+    } else {
+      // Default to project date range if no specific range provided
+      whereClause.created_at = {
+        [Op.between]: [project.start_date, project.end_date]
+      };
+    }
 
     const tasks = await Task.findAll({
       where: whereClause,
@@ -83,6 +88,11 @@ const getProjectTasks = async (req, res) => {
           model: Department,
           as: 'department',
           attributes: ['id', 'name']
+        },
+        {
+          model: Project,
+          as: 'project',
+          attributes: ['id', 'title']
         }
       ],
       order: [['created_at', 'DESC']]
@@ -172,13 +182,11 @@ const updateProject = async (req, res) => {
   try {
     const { id } = req.params;
     const { title, description, start_date, end_date, columns } = req.body;
-    const userId = req.user.id;
 
-    // Check if the project was created by the user
+    // Check if the project exists
     const project = await Project.findOne({
       where: {
-        id: id,
-        created_by: userId
+        id: id
       }
     });
 
@@ -247,13 +255,11 @@ const deleteProject = async (req, res) => {
 
   try {
     const { id } = req.params;
-    const userId = req.user.id;
 
-    // Check if the project was created by the user
+    // Check if the project exists
     const project = await Project.findOne({
       where: {
-        id: id,
-        created_by: userId
+        id: id
       }
     });
 
