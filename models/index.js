@@ -5,7 +5,6 @@ const Task = require('./Task');
 const TaskComment = require('./TaskComment');
 const Project = require('./Project');
 const Notification = require('./Notification');
-const MeistertaskProject = require('./MeistertaskProject');
 
 // Define associations
 Department.hasMany(Employee, { foreignKey: 'department_id', as: 'employees' });
@@ -33,10 +32,6 @@ TaskComment.belongsTo(Employee, { foreignKey: 'employee_id', as: 'employee' });
 Employee.hasMany(Project, { foreignKey: 'created_by', as: 'createdProjects' });
 Project.belongsTo(Employee, { foreignKey: 'created_by', as: 'creator' });
 
-// Meistertask Project associations
-Employee.hasMany(MeistertaskProject, { foreignKey: 'created_by', as: 'createdMeistertaskProjects' });
-MeistertaskProject.belongsTo(Employee, { foreignKey: 'created_by', as: 'creator' });
-
 // Notification associations
 Employee.hasMany(Notification, { foreignKey: 'recipient_id', as: 'notifications' });
 Notification.belongsTo(Employee, { foreignKey: 'recipient_id', as: 'recipient' });
@@ -51,6 +46,5 @@ module.exports = {
   Task,
   TaskComment,
   Project,
-  MeistertaskProject,
   Notification
 };

@@ -18,7 +18,11 @@ const Department = sequelize.define('Department', {
   },
   manager_id: {
     type: DataTypes.UUID,
-    allowNull: true
+    allowNull: true,
+    references: {
+      model: 'employees',
+      key: 'id'
+    }
   },
   budget: {
     type: DataTypes.DECIMAL(10, 2),

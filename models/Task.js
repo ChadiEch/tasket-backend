@@ -29,7 +29,7 @@ const Task = sequelize.define('Task', {
     references: {
       model: 'employees',
       key: 'id'
-    }
+      }
   },
   department_id: {
     type: DataTypes.UUID,
@@ -60,23 +60,17 @@ const Task = sequelize.define('Task', {
     allowNull: true
   },
   estimated_hours: {
-    type: DataTypes.DECIMAL(5, 2),
-    allowNull: false
+    type: DataTypes.DECIMAL(5,2),
+    allowNull: false,
+    defaultValue: 1.00
   },
   actual_hours: {
-    type: DataTypes.DECIMAL(5, 2),
+    type: DataTypes.DECIMAL(5,2),
     allowNull: true
   },
   tags: {
     type: DataTypes.JSON,
-    defaultValue: [],
-    get() {
-      const rawValue = this.getDataValue('tags');
-      return rawValue ? (Array.isArray(rawValue) ? rawValue : JSON.parse(rawValue)) : [];
-    },
-    set(value) {
-      this.setDataValue('tags', Array.isArray(value) ? value : []);
-    }
+    defaultValue: []
   },
   project_id: {
     type: DataTypes.UUID,
@@ -86,79 +80,18 @@ const Task = sequelize.define('Task', {
       key: 'id'
     }
   },
-  // Add meistertask_project_id field for Meistertask projects
-  meistertask_project_id: {
-    type: DataTypes.UUID,
-    allowNull: true,
-    references: {
-      model: 'meistertask_projects',
-      key: 'id'
-    }
-  },
-  // Add attachments field for documents, links, and photos
   attachments: {
     type: DataTypes.JSON,
-    defaultValue: [],
-    get() {
-      const rawValue = this.getDataValue('attachments');
-      if (!rawValue) return [];
-      
-      // Handle different possible formats
-      if (Array.isArray(rawValue)) return rawValue;
-      
-      try {
-        // Try to parse if it's a JSON string
-        return JSON.parse(rawValue);
-      } catch (e) {
-        // If parsing fails, return empty array
-        console.error('Error parsing attachments JSON:', e);
-        return [];
-      }
-    },
-    set(value) {
-      // Ensure we always store as an array
-      const arrayValue = Array.isArray(value) ? value : [];
-      this.setDataValue('attachments', arrayValue);
-    },
-    validate: {
-      // Custom validator to ensure attachments are properly formatted
-      isValidAttachments(value) {
-        if (!Array.isArray(value)) {
-          throw new Error('Attachments must be an array');
-        }
-        
-        // Validate each attachment
-        for (const attachment of value) {
-          if (!attachment || typeof attachment !== 'object') {
-            throw new Error('Each attachment must be an object');
-          }
-          
-          if (!attachment.id) {
-            throw new Error('Each attachment must have an id');
-          }
-          
-          if (!attachment.type) {
-            throw new Error('Each attachment must have a type');
-          }
-          
-          if (!attachment.url && !attachment.name) {
-            throw new Error('Each attachment must have a url or name');
-          }
-        }
-      }
-    }
+    defaultValue: []
   },
-  // Add trashed_at field to track when task was moved to trash
   trashed_at: {
     type: DataTypes.DATE,
     allowNull: true
   },
-  // Add restored_at field to track when task was restored from trash
   restored_at: {
     type: DataTypes.DATE,
     allowNull: true
   },
-  // Add status_before_trash to track the previous status when moving to trash
   status_before_trash: {
     type: DataTypes.STRING,
     allowNull: true
@@ -177,29 +110,5 @@ const Task = sequelize.define('Task', {
   createdAt: 'created_at',
   updatedAt: 'updated_at'
 });
-
-// Add a custom method to update the created_at field
-Task.prototype.updateCreatedAt = async function(newDate) {
-  try {
-    // Use a raw query to bypass Sequelize's automatic timestamp management
-    const sequelize = require('../config/database');
-    await sequelize.query(
-      'UPDATE tasks SET created_at = ? WHERE id = ?',
-      {
-        replacements: [newDate, this.id],
-        type: sequelize.QueryTypes.UPDATE
-      }
-    );
-    
-    // Update the instance in memory
-    this.created_at = newDate;
-    
-    console.log('Successfully updated created_at to:', newDate);
-    return this;
-  } catch (error) {
-    console.error('Error updating created_at:', error);
-    throw error;
-  }
-};
 
 module.exports = Task;
