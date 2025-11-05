@@ -413,6 +413,14 @@ const updateTask = async (req, res) => {
           type = 'video';
         }
         
+        console.log('Processing uploaded file for update:', {
+          originalname: file.originalname,
+          mimetype: file.mimetype,
+          size: file.size,
+          r2Url: file.r2Url,
+          filename: file.filename
+        });
+        
         return {
           id: Date.now() + Math.random(), // Generate a temporary ID
           type: type,
@@ -422,14 +430,14 @@ const updateTask = async (req, res) => {
         };
       });
       
-      console.log('Uploaded files processed:', uploadedFiles);
+      console.log('Uploaded files processed for update:', uploadedFiles);
       
       // Filter out placeholder attachments (those with empty URLs)
       // This ensures we only keep valid attachments and replace placeholders with actual uploaded files
       const filteredAttachments = processedAttachments.filter(attachment => attachment && attachment.url);
-      console.log('Filtered attachments:', filteredAttachments);
+      console.log('Filtered attachments for update:', filteredAttachments);
       processedAttachments = [...filteredAttachments, ...uploadedFiles];
-      console.log('Final processed attachments:', processedAttachments);
+      console.log('Final processed attachments for update:', processedAttachments);
     }
     
     // Add attachments to update data if they were processed
