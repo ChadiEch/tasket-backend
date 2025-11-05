@@ -379,6 +379,7 @@ const updateTask = async (req, res) => {
     console.log('Update task request for ID:', id);
     console.log('Task data received:', JSON.stringify(taskData, null, 2));
     console.log('User role:', req.user.role);
+    console.log('Uploaded files:', req.files);
 
     const task = await Task.findByPk(id);
     if (!task) {
@@ -398,6 +399,44 @@ const updateTask = async (req, res) => {
     // Prepare update data
     const updateData = {};
     
+    // Process attachments if files were uploaded
+    let processedAttachments = Array.isArray(taskData.attachments) ? taskData.attachments : [];
+    console.log('Initial attachments from request:', processedAttachments);
+    
+    if (req.files && req.files.length > 0) {
+      // Add uploaded files to attachments
+      const uploadedFiles = req.files.map(file => {
+        let type = 'document'; // Default type
+        if (file.mimetype.startsWith('image/')) {
+          type = 'photo';
+        } else if (file.mimetype.startsWith('video/')) {
+          type = 'video';
+        }
+        
+        return {
+          id: Date.now() + Math.random(), // Generate a temporary ID
+          type: type,
+          // Use R2 URL if enabled, otherwise use local path
+          url: USE_CLOUDFLARE_R2 ? file.r2Url : `/uploads/${file.filename}`,
+          name: file.originalname
+        };
+      });
+      
+      console.log('Uploaded files processed:', uploadedFiles);
+      
+      // Filter out placeholder attachments (those with empty URLs)
+      // This ensures we only keep valid attachments and replace placeholders with actual uploaded files
+      const filteredAttachments = processedAttachments.filter(attachment => attachment && attachment.url);
+      console.log('Filtered attachments:', filteredAttachments);
+      processedAttachments = [...filteredAttachments, ...uploadedFiles];
+      console.log('Final processed attachments:', processedAttachments);
+    }
+    
+    // Add attachments to update data if they were processed
+    if (processedAttachments.length > 0) {
+      updateData.attachments = processedAttachments;
+    }
+
     // Only include fields that are actually provided in the request
     if (taskData.title !== undefined) updateData.title = taskData.title;
     if (taskData.description !== undefined) updateData.description = taskData.description;
