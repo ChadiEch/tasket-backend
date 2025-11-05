@@ -1,6 +1,8 @@
 // railway-r2-test.js
 // Test script specifically for Railway environment to diagnose R2 issues
 
+require('dotenv').config(); // Load environment variables from .env file
+
 console.log('=== Railway Cloudflare R2 Connection Test ===\n');
 
 // Import required modules

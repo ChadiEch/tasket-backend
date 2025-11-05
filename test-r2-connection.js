@@ -1,4 +1,5 @@
 const { S3Client, ListBucketsCommand } = require('@aws-sdk/client-s3');
+require('dotenv').config(); // Load environment variables from .env file
 
 // Cloudflare R2 configuration from environment variables
 const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID;

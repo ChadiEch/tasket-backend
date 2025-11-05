@@ -6,11 +6,17 @@ const rateLimit = require('express-rate-limit');
 const http = require('http');
 const path = require('path');
 const { Server } = require('socket.io');
-require('dotenv').config();
+require('dotenv').config({ path: path.resolve(__dirname, '.env') }); // Explicitly load .env file
 
 const { sequelize } = require('./models');
 const WebSocketService = require('./services/websocketService');
 const DueDateNotificationService = require('./services/dueDateNotificationService');
+
+// Log environment variables for debugging
+console.log('Environment variables:');
+console.log('  USE_CLOUDFLARE_R2:', process.env.USE_CLOUDFLARE_R2);
+console.log('  R2_ACCOUNT_ID:', process.env.R2_ACCOUNT_ID ? 'SET' : 'NOT SET');
+console.log('  R2_BUCKET_NAME:', process.env.R2_BUCKET_NAME);
 
 const app = express();
 const server = http.createServer(app);
